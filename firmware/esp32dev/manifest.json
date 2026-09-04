@@ -1,0 +1,41 @@
+{
+  "name": "Massmore BME280 Factory Test",
+  "version": "1.0.0",
+  "sku": "SKU-1023",
+  "product": "Massmore BME280 Environment Sensor (Temperature / Humidity / Pressure)",
+  "product_url": "https://www.massmore.shop",
+  "library": "Massmore_BME280 1.0.0",
+  "built_with": {
+    "platform": "pioarduino platform-espressif32 55.03.311",
+    "arduino_core": "3.3.11",
+    "framework": "arduino",
+    "toolchain": "xtensa-esp-elf 14.2.0"
+  },
+  "chip_family": "ESP32",
+  "board": "esp32dev",
+  "flash_mode": "dio",
+  "flash_freq": "40m",
+  "flash_size": "4MB",
+  "monitor_speed": 115200,
+  "upload_speed": 512000,
+  "sensor": {
+    "chip": "Bosch BME280",
+    "chip_id": "0x60",
+    "i2c_addresses": ["0x76", "0x77"]
+  },
+  "pins": {
+    "sda": 21,
+    "scl": 22
+  },
+  "parts": [
+    { "path": "bootloader.bin", "offset": "0x1000" },
+    { "path": "partitions.bin", "offset": "0x8000" },
+    { "path": "boot_app0.bin", "offset": "0xe000" },
+    { "path": "Massmore_BME280_FactoryTest_v1.0.0_esp32dev.bin", "offset": "0x10000" }
+  ],
+  "merged": {
+    "path": "Massmore_BME280_FactoryTest_v1.0.0_esp32dev_merged.bin",
+    "offset": "0x0",
+    "note": "ไฟล์เดียวจบ เขียนที่ offset 0 ใช้กับ ESP Web Tools ได้เลย"
+  }
+}

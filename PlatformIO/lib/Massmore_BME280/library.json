@@ -1,0 +1,27 @@
+{
+  "name": "Massmore_BME280",
+  "version": "1.0.0",
+  "description": "ไลบรารีสำหรับเซ็นเซอร์สภาพแวดล้อม Bosch BME280 (อุณหภูมิ ความชื้น ความดัน ความสูง) เขียนจากดาต้าชีตโดยตรง รองรับ oversampling, IIR filter, forced/normal mode, อ่านค่าดิบและค่าชดเชย พร้อมการตรวจชิปแท้ 10 ข้อ",
+  "keywords": ["sensor", "temperature", "humidity", "pressure", "altitude", "bme280", "bmp280", "bosch", "i2c", "qwiic", "massmore"],
+  "authors": [
+    {
+      "name": "Massmore",
+      "email": "info@massmore.shop",
+      "url": "https://www.massmore.shop",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Massmore/Massmore_BME280_SKU-1023.git"
+  },
+  "license": "MIT",
+  "homepage": "https://www.massmore.shop",
+  "frameworks": ["arduino"],
+  "platforms": "*",
+  "headers": ["Massmore_BME280.h"],
+  "dependencies": [],
+  "export": {
+    "exclude": ["examples/**/build", "*.zip"]
+  }
+}
