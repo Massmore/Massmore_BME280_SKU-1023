@@ -1,77 +1,76 @@
-# โฟลเดอร์สำหรับ Arduino IDE
+# Arduino IDE folder
 
-โฟลเดอร์ที่ต้องติดตั้งคือ **`Massmore_BME280/`** (โฟลเดอร์ที่มี `library.properties` อยู่ข้างใน)
-ไม่ใช่โฟลเดอร์ `ArduinoIDE` นี้
+The folder to install is **`Massmore_BME280/`** (the one containing `library.properties`), not this `ArduinoIDE` folder.
 
-## ไฟล์ในโฟลเดอร์นี้
+> 🇹🇭 โฟลเดอร์ที่ต้องติดตั้งคือ `Massmore_BME280/` ไม่ใช่โฟลเดอร์ `ArduinoIDE` นี้
 
-| ไฟล์ / โฟลเดอร์ | คำอธิบาย |
+## Contents
+
+| File / folder | Description |
 |---|---|
-| `Massmore_BME280.zip` | **ไฟล์พร้อมติดตั้ง** ใช้กับ Add .ZIP Library ได้ทันที |
-| `Massmore_BME280/` | ซอร์สจริงของไลบรารี (มี `library.properties` อยู่ข้างใน) |
-| `make_zip.sh` | สคริปต์สร้างไฟล์ ZIP ใหม่หลังแก้โค้ด |
+| `Massmore_BME280.zip` | **Ready to install** via Add .ZIP Library |
+| `Massmore_BME280/` | Library sources (contains `library.properties`) |
+| `make_zip.sh` | Rebuilds the ZIP after editing the sources |
 
-## วิธีติดตั้ง
+## Install
 
-### วิธีที่ 1 — จากไฟล์ ZIP ที่เตรียมไว้ให้แล้ว (แนะนำ)
+### Option 1 — the prepared ZIP (recommended)
 
 1. Arduino IDE → **Sketch → Include Library → Add .ZIP Library…**
-2. เลือกไฟล์ **`Massmore_BME280.zip`** ในโฟลเดอร์นี้
-3. เสร็จแล้วดูตัวอย่างที่ **File → Examples → Massmore_BME280**
+2. Select **`Massmore_BME280.zip`** in this folder
+3. Open an example from **File → Examples → Massmore_BME280**
 
-> ไม่ต้องแตกไฟล์ ZIP เอง Arduino IDE จัดการให้ทั้งหมด
-> และ **ห้ามเลือกโฟลเดอร์ `ArduinoIDE` นี้ทั้งโฟลเดอร์** เพราะข้างในมีสองโปรเจกต์ปนกัน
-> IDE จะไม่รู้ว่าอันไหนคือไลบรารี
+> Do not unzip it yourself, and **do not select this `ArduinoIDE` folder** — it holds two projects and the IDE cannot tell which one is the library.
+> 🇹🇭 ไม่ต้องแตก ZIP เอง และห้ามเลือกโฟลเดอร์ ArduinoIDE ทั้งโฟลเดอร์
 
-### วิธีที่ 2 — คัดลอกโฟลเดอร์
+### Option 2 — copy the folder
 
-คัดลอก `Massmore_BME280` ทั้งโฟลเดอร์ไปวางที่
+Copy the whole `Massmore_BME280` folder to
 
-| ระบบปฏิบัติการ | ตำแหน่ง |
+| OS | Location |
 |---|---|
 | macOS | `~/Documents/Arduino/libraries/` |
 | Windows | `Documents\Arduino\libraries\` |
 | Linux | `~/Arduino/libraries/` |
 
-ปิดเปิด Arduino IDE ใหม่ แล้วดูตัวอย่างที่ **File → Examples → Massmore_BME280**
+Restart the Arduino IDE, then open **File → Examples → Massmore_BME280**.
 
-## สิ่งที่ต้องมีก่อน
+## Prerequisites
 
 - Arduino IDE 2.x
-- board package ของบอร์ดที่ใช้ (ไลบรารีไม่มี dependency อื่น ใช้แค่ `Wire` / `SPI` ที่มากับ core)
+- The board package for your MCU (the library has no other dependency; it only uses `Wire` / `SPI` from the core)
 
-| บอร์ด | Board package | Boards Manager URL |
+| Board | Board package | Boards Manager URL |
 |---|---|---|
-| ESP32 / ESP32-S3 | **esp32 by Espressif core 3.x** | `https://espressif.github.io/arduino-esp32/package_esp32_index.json` |
+| ESP32 / ESP32-S3 | **esp32 by Espressif, core 3.x** | `https://espressif.github.io/arduino-esp32/package_esp32_index.json` |
 | Raspberry Pi Pico (RP2040) | **Raspberry Pi Pico/RP2040 by Earle Philhower** | `https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json` |
-| Arduino Uno / Nano (AVR) | **Arduino AVR Boards** (มีมาแล้ว) | - |
+| Arduino Uno / Nano (AVR) | **Arduino AVR Boards** (bundled) | – |
 | STM32 | **STM32 MCU based boards (STM32duino)** | `https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json` |
 
-- ตั้ง Serial Monitor ที่ **115200 baud**
+- Serial Monitor at **115200 baud**
 
-## ตัวอย่างทั้งหมด
+## Examples
 
-ดูรายละเอียดของทั้ง 7 ตัวอย่างได้ที่ [README หลักของรีโป](../README.md#ตัวอย่างทั้งหมด)
+See the 7 examples in the [main README](../README.md#examples-7).
 
-## แก้โค้ดแล้วอยากอัปเดตไฟล์ ZIP
-
-หลังแก้ซอร์สหรือตัวอย่างในโฟลเดอร์ `Massmore_BME280/` ให้สร้าง ZIP ใหม่ด้วย
+## Rebuilding the ZIP after edits
 
 ```bash
 chmod +x make_zip.sh
 ./make_zip.sh
 ```
 
-สคริปต์จะตัดไฟล์ขยะ (`.DS_Store`, `*.o`, `*~`, โฟลเดอร์ที่ขึ้นต้นด้วยจุด) ออกให้เอง
-เพราะไฟล์พวกนี้ทำให้ Arduino IDE ขึ้นเตือนตอน import
+The script strips junk files (`.DS_Store`, `*.o`, `*~`, dot-folders) that make the Arduino IDE complain on import.
 
-## ถ้า Arduino IDE ไม่ยอมรับไฟล์ ZIP
+> 🇹🇭 แก้โค้ดแล้วรัน `make_zip.sh` เพื่อสร้าง ZIP ใหม่ สคริปต์ตัดไฟล์ขยะให้เอง
 
-| ข้อความที่ขึ้น | สาเหตุ | วิธีแก้ |
+## If the IDE rejects the ZIP
+
+| Message | Cause | Fix |
 |---|---|---|
-| `A library named Massmore_BME280 already exists` | เคยติดตั้งไว้แล้ว | ลบโฟลเดอร์เดิมใน `libraries/` ออกก่อน แล้ว import ใหม่ |
-| `Specified folder/zip file does not contain a valid library` | เลือกไฟล์ ZIP ผิดตัว หรือ ZIP ที่บีบอัดเองมีโฟลเดอร์ซ้อนกันสองชั้น | ใช้ `Massmore_BME280.zip` ที่ให้มา หรือสร้างใหม่ด้วย `make_zip.sh` |
-| import ผ่านแต่ไม่เห็นตัวอย่าง | IDE ยังไม่ได้สแกนใหม่ | ปิดเปิด Arduino IDE หนึ่งครั้ง |
+| `A library named Massmore_BME280 already exists` | Already installed | Delete the old folder in `libraries/` and import again |
+| `Specified folder/zip file does not contain a valid library` | Wrong ZIP, or a self-made ZIP with a double-nested folder | Use the provided `Massmore_BME280.zip` or rebuild with `make_zip.sh` |
+| Imported but no examples shown | IDE has not rescanned yet | Restart the Arduino IDE |
 
 ---
 

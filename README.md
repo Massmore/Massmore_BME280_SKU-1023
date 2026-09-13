@@ -5,9 +5,10 @@
 </p>
 
 <p align="center">
-  <b>ไลบรารี Arduino / PlatformIO สำหรับเซ็นเซอร์ Bosch BME280 (I²C + SPI)</b><br>
-  วัดอุณหภูมิ · ความชื้นสัมพัทธ์ · ความดันบรรยากาศ · คำนวณความสูง<br>
-  <sub><b>Designed and Manufactured by Massmore</b> · Massmore Biz Co., Ltd.</sub>
+  <b>Arduino / PlatformIO library for the Bosch BME280 (I²C + SPI)</b><br>
+  Temperature · Relative Humidity · Barometric Pressure · Altitude<br>
+  <sub><b>Designed and Manufactured by Massmore</b> · Massmore Biz Co., Ltd.</sub><br>
+  <sub>ไลบรารีสำหรับเซ็นเซอร์ Bosch BME280 วัดอุณหภูมิ ความชื้น ความดัน และคำนวณความสูง</sub>
 </p>
 
 <p align="center">
@@ -21,146 +22,156 @@
 
 ---
 
-## สารบัญ
+## Table of Contents
 
-- [ภาพรวมผลิตภัณฑ์](#ภาพรวมผลิตภัณฑ์)
+- [Product Overview](#product-overview)
 - [Pre-flight Datasheet Verification](#pre-flight-datasheet-verification)
 - [MCU Compatibility & Limitation Matrix](#mcu-compatibility--limitation-matrix)
-- [Pinout และการต่อสาย](#pinout-และการต่อสาย)
+- [Pinout & Wiring](#pinout--wiring)
 - [Where to Buy](#where-to-buy)
-- [ติดตั้ง](#ติดตั้ง)
+- [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Pin Mapping Examples](#pin-mapping-examples)
-- [คู่มือ API](#คู่มือ-api)
-- [ตัวอย่างทั้งหมด (7 ชุด)](#ตัวอย่างทั้งหมด-7-ชุด)
-- [การตรวจว่าเป็นชิปของแท้](#การตรวจว่าเป็นชิปของแท้)
+- [API Reference](#api-reference)
+- [Examples (7)](#examples-7)
+- [Genuine Chip Verification](#genuine-chip-verification)
 - [Factory Test (QA/QC)](#factory-test-qaqc)
-- [ชุดทดสอบบนเครื่อง PC](#ชุดทดสอบบนเครื่อง-pc)
-- [แก้ปัญหาที่พบบ่อย](#แก้ปัญหาที่พบบ่อย)
-- [โครงสร้างรีโป](#โครงสร้างรีโป)
+- [Host Test Suite](#host-test-suite)
+- [Troubleshooting](#troubleshooting)
+- [Repository Layout](#repository-layout)
 - [Massmore Pre-Release Audit & Missing Information Report](#massmore-pre-release-audit--missing-information-report)
 
 ---
 
-## ภาพรวมผลิตภัณฑ์
+## Product Overview
 
 <p align="center">
   <img src="Document/images/02_massmore_bme280_product.png" alt="Massmore BME280 board" width="420">
 </p>
 
-บอร์ด **Massmore BME280 (SKU-1023)** คือโมดูลเซ็นเซอร์สภาพแวดล้อม Bosch BME280 ที่มีเรกูเลเตอร์
-และ level shifting ในตัว รับไฟ 3–5 V ต่อได้ทั้ง **I²C (Qwiic / STEMMA QT)** และ **SPI 4 สาย**
+The **Massmore BME280 (SKU-1023)** is a breakout module for the Bosch BME280 environmental sensor with an on-board
+3.3 V regulator and level shifting. It accepts 3–5 V and supports both **I²C (Qwiic / STEMMA QT)** and **4-wire SPI**.
 
-| | รายละเอียด |
+> 🇹🇭 บอร์ด BME280 ของ Massmore มีเรกูเลเตอร์และ level shifter ในตัว รับไฟ 3–5 V ต่อได้ทั้ง I²C (Qwiic) และ SPI 4 สาย
+
+| | Details |
 |---|---|
-| **เขียนจากดาต้าชีตตรง ๆ** | สูตรชดเชยทุกบรรทัดคัดจาก Bosch **BST-BME280-DS002** หัวข้อ 4.2.3 ผลลัพธ์ตรงกับตัวเลขตัวอย่างในดาต้าชีตทุกหลัก |
-| **Zero Pin Hardcoding** | ไลบรารีไม่เรียก `Wire.begin()` / `SPI.begin()` และไม่รู้จักหมายเลขขา sketch เป็นเจ้าของบัส จึงย้ายขาได้อิสระบนทุก MCU |
-| **I²C + SPI** | `begin(addr, Wire)` หรือ `beginSPI(cs, SPI)` โค้ดที่เหลือเหมือนกันทุกบรรทัด |
-| **Dual API** | แบบง่าย `read()` (บล็อก) และ FSM ไม่บล็อก `requestConversion()` / `update()` / `isDataReady()` / `getReadings()` |
-| **ไม่ใช้ heap** | ไม่มี `new` / `malloc` / `String` ในส่วนแกน ใช้บน ATmega328P (SRAM 2 KB) ได้ |
-| **ตรวจชิปแท้ 10 ข้อ** | `verifyChip()` แยก **BMP280 (0x58)** ออกจาก **BME280 (0x60)** ด้วยพฤติกรรมจริงของซิลิคอน |
-| **Factory Test** | `07_Factory_Test` ตรวจ 22 หัวข้อ จบด้วย `[PASS] SENSOR QA PASSED - READY TO SHIP` |
-| **ทดสอบแล้ว 192 ข้อ** | ชุดทดสอบรันบนเครื่อง PC (ชิปจำลองทั้ง I²C และ SPI) ไม่ต้องมีบอร์ด |
+| **Straight from the datasheet** | Every compensation formula is taken from Bosch **BST-BME280-DS002** §4.2.3; results match the datasheet example values exactly |
+| **Zero pin hardcoding** | The library never calls `Wire.begin()` / `SPI.begin()` and knows no pin numbers. The sketch owns the bus, so pins can be remapped freely on any MCU |
+| **I²C + SPI** | `begin(addr, Wire)` or `beginSPI(cs, SPI)` — everything else is identical |
+| **Dual API** | Simple blocking `read()` and a non-blocking FSM: `requestConversion()` / `update()` / `isDataReady()` / `getReadings()` |
+| **Heap-free** | No `new` / `malloc` / `String` in the core; runs on ATmega328P (2 KB SRAM) |
+| **10-point genuine check** | `verifyChip()` separates **BMP280 (0x58)** from **BME280 (0x60)** by probing real silicon behaviour |
+| **Factory Test** | `07_Factory_Test` runs 22 checks and ends with `[PASS] SENSOR QA PASSED - READY TO SHIP` |
+| **192 host tests** | Test suite runs on a PC against a simulated chip (I²C and SPI) — no hardware needed |
 
-### สเปกการวัด
+### Measurement specifications
 
-| ค่าที่วัด | ช่วง | ความละเอียด | ความแม่นยำ |
+| Quantity | Range | Resolution | Accuracy |
 |---|---|---|---|
-| อุณหภูมิ | −40 ถึง +85 °C | 0.01 °C | ±0.5 °C (25 °C) · ±1.0 °C (0–65 °C) |
-| ความชื้นสัมพัทธ์ | 0 ถึง 100 %RH | 0.008 %RH | ±3 %RH (20–80 %RH) |
-| ความดันบรรยากาศ | 300 ถึง 1100 hPa | 0.18 Pa | ±1 hPa (สัมบูรณ์) · ±0.12 hPa (สัมพัทธ์) |
-| ความสูง (คำนวณ) | 0 ถึง ~9000 m | ~0.17 m | ขึ้นกับการปรับเทียบระดับน้ำทะเล |
+| Temperature | −40 to +85 °C | 0.01 °C | ±0.5 °C (25 °C) · ±1.0 °C (0–65 °C) |
+| Relative humidity | 0 to 100 %RH | 0.008 %RH | ±3 %RH (20–80 %RH) |
+| Barometric pressure | 300 to 1100 hPa | 0.18 Pa | ±1 hPa (absolute) · ±0.12 hPa (relative) |
+| Altitude (derived) | 0 to ~9000 m | ~0.17 m | Depends on sea-level calibration |
 
-### ไฟฟ้าและอินเทอร์เฟซ
+### Electrical & interface
 
-| หัวข้อ | ค่า |
+| Item | Value |
 |---|---|
-| แรงดันที่บอร์ดรับได้ | 3–5 V (มีเรกูเลเตอร์บนบอร์ด) · ขา `3Vo` จ่าย 3.3 V ออกได้ |
-| กระแสตอน sleep / วัด 1 Hz / normal x16 | 0.1 µA / ~3.6 µA / ~340 µA |
-| I²C | 100 kHz · 400 kHz (ชิปรับได้ถึง 3.4 MHz) · address **`0x77` (ปริยาย)** / `0x76` (SDO → GND) |
-| SPI | 4 สาย mode 0/3 สูงสุด **10 MHz** (ไลบรารีใช้ mode 0, clamp ที่ 10 MHz) |
-| หัวต่อ | Qwiic / STEMMA QT สองหัว (ต่อพ่วงได้) + แพดบัดกรี 7 ขา |
-| ขนาดบอร์ด | 25.40 × 20.32 mm · รูยึด M2 |
+| Board supply | 3–5 V (on-board regulator) · `3Vo` pin provides 3.3 V out |
+| Current: sleep / 1 Hz / normal x16 | 0.1 µA / ~3.6 µA / ~340 µA |
+| I²C | 100 kHz · 400 kHz (chip supports up to 3.4 MHz) · address **`0x77` (default)** / `0x76` (SDO → GND) |
+| SPI | 4-wire, mode 0/3, up to **10 MHz** (library uses mode 0, clamps at 10 MHz) |
+| Connectors | 2× Qwiic / STEMMA QT (daisy-chainable) + 7 solder pads |
+| Board size | 25.40 × 20.32 mm · M2 mounting holes |
 
 ---
 
 ## Pre-flight Datasheet Verification
 
-สรุปจากดาต้าชีต [BST-BME280-DS002](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf) ที่ไลบรารีใช้เป็นฐาน
+Summary of the [BST-BME280-DS002](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf) facts the driver is built on.
 
-| หัวข้อ | ค่าจากดาต้าชีต | ที่ใช้ในไลบรารี |
+> 🇹🇭 สรุปค่าจากดาต้าชีตที่ไลบรารีใช้อ้างอิง (ขั้น Step 0 ตามมาตรฐาน Massmore)
+
+| Item | Datasheet | Used in library |
 |---|---|---|
-| **Device Identification** | รีจิสเตอร์ `0xD0` = **`0x60`** (BMP280 = `0x58`, BME680 = `0x61`) ไม่มีรีจิสเตอร์ silicon revision | `begin()` ปฏิเสธทุกค่าที่ไม่ใช่ 0x60 |
-| **Bus – I²C** | สูงสุด 3.4 MHz · `0x76` (SDO=GND) / `0x77` (SDO=VDDIO) · ห้ามปล่อย SDO ลอย | `MASSMORE_BME280_I2C_ADDR_DEFAULT = 0x77` |
-| **Bus – SPI** | 4 สาย mode 0/3 ≤ 10 MHz · control byte บิต 7 = R/W · auto-increment | `beginSPI()` mode 0, clamp 10 MHz, `spi3w_en = 0` |
-| **Boot & Reset Timing** | start-up 2 ms หลังจ่ายไฟ · soft reset เขียน `0xB6` ที่ `0xE0` แล้วรอ `status[0] im_update = 0` | รอ NVM copy ด้วย timeout 100 ms |
-| **Data Protocol** | เข้าถึงรีจิสเตอร์ตรง ไม่มี CRC/packet · calib `0x88–0xA1`, `0xE1–0xE7` · data `0xF7–0xFE` burst read (shadowing) | `read()` อ่าน 8 ไบต์รวดเดียว |
-| **Authenticity / Lot Clues** | Bosch ไม่เผยแพร่ signature / trim register อย่างเป็นทางการ | heuristic 10 ข้อใน `verifyChip()` — `// TODO: [MASSMORE_INPUT_REQUIRED: Factory trim signature register]` |
+| **Device Identification** | Register `0xD0` = **`0x60`** (BMP280 = `0x58`, BME680 = `0x61`). No silicon-revision register | `begin()` rejects anything but 0x60 |
+| **Bus – I²C** | Up to 3.4 MHz · `0x76` (SDO = GND) / `0x77` (SDO = VDDIO) · SDO must not float | `MASSMORE_BME280_I2C_ADDR_DEFAULT = 0x77` |
+| **Bus – SPI** | 4-wire, mode 0/3, ≤ 10 MHz · control byte bit 7 = R/W · auto-increment | `beginSPI()` mode 0, clamp 10 MHz, `spi3w_en = 0` |
+| **Boot & Reset Timing** | 2 ms start-up after power-on · soft reset = write `0xB6` to `0xE0`, then wait for `status[0] im_update = 0` | NVM-copy wait with 100 ms timeout |
+| **Data Protocol** | Direct register access, no CRC/packets · calib `0x88–0xA1`, `0xE1–0xE7` · data `0xF7–0xFE` burst read (shadowing) | `read()` reads 8 bytes in one burst |
+| **Authenticity / Lot Clues** | Bosch publishes no signature / trim register | 10-point heuristic in `verifyChip()` — `// TODO: [MASSMORE_INPUT_REQUIRED: Factory trim signature register]` |
 
 ---
 
 ## MCU Compatibility & Limitation Matrix
 
-ทุกตัวอย่างทั้ง 7 ชุดคอมไพล์ผ่านแล้วบน 4 env ของ `PlatformIO/platformio.ini` (0 error, 0 warning จากโค้ดไลบรารี)
+All 7 examples compile on the 4 environments in `PlatformIO/platformio.ini` with 0 errors and 0 warnings from library code.
+
+> 🇹🇭 ตัวอย่างทั้ง 7 ชุดคอมไพล์ผ่านทุก env; STM32 ผ่านตามหลักการแต่ยังไม่ได้ทดสอบบนบอร์ดจริง
 
 | MCU Platform | Tested Core / Toolchain | Bus Remapping Support | Limitations / Notes |
 |---|---|---|---|
-| **ESP32-S3** | Arduino-ESP32 **v3.3.11** (pioarduino 55.03.311) | Full GPIO Matrix · `Wire`/`Wire1` · `SPI.begin(sck, miso, mosi, -1)` | None. แนะนำสำหรับงานอัตราสูง / SPI 10 MHz. USB-CDC เปิดไว้ใน env |
-| **ESP32 (Classic)** | Arduino-ESP32 **v3.3.11** (pioarduino 55.03.311) | Full GPIO Matrix · `Wire.begin(sda, scl)` · `Wire1` | None. ขาปริยาย SDA 21 / SCL 22 · VSPI 18/19/23 |
-| **RP2040 (Pico)** | Arduino-Pico (Earle Philhower) | I2C0/I2C1 และ SPI0/SPI1 เฉพาะขาตาม pinmux · `Wire.setSDA()/setSCL()` · `SPI.setSCK()/setRX()/setTX()` | ต้องเรียก `setSDA/setSCL` ก่อน `begin()` เสมอ (ดู `02_CustomPins_BusRemap`) |
-| **AVR (ATmega328P)** Uno / Nano | Arduino AVR Core (atmelavr) | ขาฮาร์ดแวร์ตายตัว I²C A4/A5 · SPI 11/12/13 | SRAM 2 KB / flash 32 KB — ใช้ Simple API เป็นหลัก, `*ToString()` คืน ASCII, `07_Factory_Test` ข้าม 4 หัวข้อ (เหลือ 18) และ Nano bootloader เก่าเหลือ flash 1.2 % |
-| **STM32** | STM32duino | I2C1/2/3, SPI1/2/3 · `Wire.setSDA()/setSCL()` ก่อน `begin()` | คอมไพล์ผ่านตามหลักการ (โค้ดไม่มีส่วนเฉพาะแพลตฟอร์ม) แต่ **ยังไม่ได้ทดสอบบนฮาร์ดแวร์จริง** |
+| **ESP32-S3** | Arduino-ESP32 **v3.3.11** (pioarduino 55.03.311) | Full GPIO matrix · `Wire`/`Wire1` · `SPI.begin(sck, miso, mosi, -1)` | None. Recommended for high-rate data / 10 MHz SPI. USB-CDC enabled in env |
+| **ESP32 (Classic)** | Arduino-ESP32 **v3.3.11** (pioarduino 55.03.311) | Full GPIO matrix · `Wire.begin(sda, scl)` · `Wire1` | None. Default SDA 21 / SCL 22 · VSPI 18/19/23 |
+| **RP2040 (Pico)** | Arduino-Pico (Earle Philhower) | I2C0/I2C1 and SPI0/SPI1 pins per pinmux · `Wire.setSDA()/setSCL()` · `SPI.setSCK()/setRX()/setTX()` | Call `setSDA/setSCL` before `begin()` (see `02_CustomPins_BusRemap`) |
+| **AVR (ATmega328P)** Uno / Nano | Arduino AVR Core (atmelavr) | Fixed hardware pins: I²C A4/A5 · SPI 11/12/13 | 2 KB SRAM / 32 KB flash — use the Simple API, `*ToString()` returns ASCII, `07_Factory_Test` skips 4 checks (18 remain); old-bootloader Nano has 1.2 % flash headroom |
+| **STM32** | STM32duino | I2C1/2/3, SPI1/2/3 · `Wire.setSDA()/setSCL()` before `begin()` | Compiles by design (no platform-specific code) but **not yet verified on hardware** |
 
 ---
 
-## Pinout และการต่อสาย
+## Pinout & Wiring
 
 <p align="center">
   <img src="Document/images/04_massmore_bme280_pinout_dimension.png" alt="pinout and dimensions" width="520">
 </p>
 
-| ขา | หน้าที่ (I²C) | หน้าที่ (SPI) | หมายเหตุ |
+| Pin | I²C function | SPI function | Notes (🇹🇭 หมายเหตุ) |
 |---|---|---|---|
-| `VIN` | ไฟเข้า **3–5 V DC** | ไฟเข้า 3–5 V DC | ต่อ `3V3` หรือ `5V` ของ MCU |
-| `3Vo` | ไฟ 3.3 V ออกจากเรกูเลเตอร์ | เหมือนกัน | ไม่ต้องต่อ (จ่ายให้อุปกรณ์อื่นได้) |
-| `GND` | กราวด์ | กราวด์ | |
+| `VIN` | Power in **3–5 V DC** | Power in 3–5 V DC | Connect to `3V3` or `5V` of the MCU |
+| `3Vo` | 3.3 V regulator output | same | Optional; can power other modules |
+| `GND` | Ground | Ground | |
 | `SCK` | **SCL** | **SCK** | |
-| `SDO` | เลือก address (**ลอย/VDDIO = 0x77**, GND = 0x76) | **MISO** | ค่าปริยายของบอร์ด = 0x77 |
+| `SDO` | Address select (**float/VDDIO = 0x77**, GND = 0x76) | **MISO** | Board default = 0x77 (ค่าปริยาย 0x77) |
 | `SDI` | **SDA** | **MOSI** | |
-| `CS` | ไม่ต้องต่อ (ดึงขึ้นในตัว = โหมด I²C) | **Chip Select** (active low) | ห้ามปล่อยลอยเมื่อใช้ SPI |
-| `Qwiic` ×2 | SDA / SCL / 3V3 / GND | – | ต่อพ่วงหลายโมดูลได้ |
+| `CS` | Leave open (pulled up = I²C mode) | **Chip Select** (active low) | Must not float in SPI mode |
+| `Qwiic` ×2 | SDA / SCL / 3V3 / GND | – | Daisy-chain multiple modules |
 
 <p align="center">
   <img src="Document/images/03_massmore_bme280_wiring_esp32.png" alt="wiring with ESP32" width="560">
 </p>
 
-> **ต้องการเซ็นเซอร์สองตัวบนบัส I²C เดียวกัน?** ต่อ `SDO` ของตัวที่สองลง `GND` เพื่อย้ายไป `0x76`
-> แล้วต่อพ่วงผ่านหัว Qwiic อีกหัวได้เลย (`bme2.begin(MASSMORE_BME280_I2C_ADDR_A)`)
+> **Two sensors on one I²C bus?** Tie `SDO` of the second board to `GND` to move it to `0x76`, then chain it via the
+> second Qwiic connector and call `bme2.begin(MASSMORE_BME280_I2C_ADDR_A)`.
+> 🇹🇭 ต่อ SDO ของบอร์ดที่สองลง GND เพื่อย้ายไป 0x76
 
 ---
 
 ## Where to Buy
 
-| ช่องทาง | ลิงก์ |
+| Channel | Link |
 |---|---|
 | **Massmore Official Store** | <https://www.massmore.shop/products/bf997665-da75-4b6f-9a98-100a5dc4030f> |
 | Shopee | `// TODO: [MASSMORE_INPUT_REQUIRED: Shopee product link]` |
 | Lazada | `// TODO: [MASSMORE_INPUT_REQUIRED: Lazada product link]` |
 
-สินค้ามีรับประกัน ออกใบกำกับภาษีได้ จัดส่งทุกวัน
+Warranty included · Tax invoice available · Ships daily
+🇹🇭 สินค้ามีรับประกัน ออกใบกำกับภาษีได้ จัดส่งทุกวัน
 
 ---
 
-## ติดตั้ง
+## Installation
 
 ### Arduino IDE
 
-1. ดาวน์โหลดรีโปนี้เป็น ZIP หรือ `git clone`
+1. Download this repository as ZIP or `git clone`
 2. Arduino IDE → **Sketch → Include Library → Add .ZIP Library…**
-3. เลือกไฟล์ **`ArduinoIDE/Massmore_BME280.zip`**
-4. เปิดตัวอย่างที่ **File → Examples → Massmore_BME280**
+3. Select **`ArduinoIDE/Massmore_BME280.zip`**
+4. Open an example from **File → Examples → Massmore_BME280**
 
-ไม่มี dependency อื่น (ใช้แค่ `Wire` / `SPI` ที่มากับ core) รายละเอียด board package ของแต่ละ MCU ดูที่ [`ArduinoIDE/README.md`](ArduinoIDE/README.md)
+No external dependencies (only `Wire` / `SPI` from the core). Board-package details per MCU: [`ArduinoIDE/README.md`](ArduinoIDE/README.md)
+
+> 🇹🇭 ติดตั้งผ่าน Add .ZIP Library แล้วเปิดตัวอย่างได้ทันที ไม่ต้องลงไลบรารีอื่นเพิ่ม
 
 ### VS Code + PlatformIO (plug-and-play)
 
@@ -168,11 +179,11 @@
 git clone https://github.com/Massmore/Massmore_BME280_SKU-1023.git
 code Massmore_BME280_SKU-1023/PlatformIO
 cp examples/01_BasicRead/main.cpp src/main.cpp
-pio run -e esp32-s3-devkitc-1 -t upload -t monitor      # หรือ esp32dev / pico / uno / nanoatmega328
+pio run -e esp32-s3-devkitc-1 -t upload -t monitor      # or esp32dev / pico / uno / nanoatmega328
 ```
 
-`platformio.ini` เตรียม env ไว้ครบ (`esp32-s3-devkitc-1`, `esp32dev`, `pico`, `uno`, `nanoatmega328`)
-ESP32 pin ไว้ที่ **pioarduino 55.03.311 = Arduino-ESP32 core 3.3.11** เพื่อให้ build ซ้ำได้เหมือนเดิม
+`platformio.ini` ships ready-made environments (`esp32-s3-devkitc-1`, `esp32dev`, `pico`, `uno`, `nanoatmega328`).
+ESP32 is pinned to **pioarduino 55.03.311 = Arduino-ESP32 core 3.3.11** for reproducible builds.
 
 ---
 
@@ -186,8 +197,8 @@ MassmoreBME280 bme;
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin();          // sketch เป็นคนเปิดบัสและเลือกขา (ESP32: Wire.begin(21, 22))
-  bme.begin();           // ปริยาย 0x77 บน Wire พร้อมตรวจ chip id ให้ด้วย
+  Wire.begin();          // the sketch owns the bus and picks the pins (ESP32: Wire.begin(21, 22))
+  bme.begin();           // default 0x77 on Wire, verifies chip id
 }
 
 void loop() {
@@ -201,25 +212,25 @@ void loop() {
 }
 ```
 
-**SPI** — เปลี่ยนแค่สองบรรทัด
+**SPI** — only two lines change (🇹🇭 ใช้ SPI เปลี่ยนแค่สองบรรทัด)
 
 ```cpp
 SPI.begin();               // ESP32: SPI.begin(18, 19, 23, -1)
-bme.beginSPI(5, SPI);      // CS = GPIO5, 1 MHz (ใส่พารามิเตอร์ที่ 3 เพื่อเพิ่มได้ถึง 10 MHz)
+bme.beginSPI(5, SPI);      // CS = GPIO5, 1 MHz (3rd argument raises it up to 10 MHz)
 ```
 
-**FSM ไม่บล็อก** — ไม่มี `delay()` ใน `loop()` เลย
+**Non-blocking FSM** — no `delay()` in `loop()` (🇹🇭 ไม่บล็อก loop เลย)
 
 ```cpp
 void loop() {
-  bme.update();                                   // เดิน FSM หนึ่งก้าว
+  bme.update();                                   // advance the FSM one step
   if (bme.isDataReady()) {
     massmore_bme280_reading_t r;
-    bme.getReadings(r);                           // รับผลแล้วกลับสู่ IDLE
+    bme.getReadings(r);                           // fetch result, FSM returns to IDLE
   } else if (bme.getState() == MASSMORE_BME280_STATE_IDLE) {
-    bme.requestConversion();                      // สั่งวัดรอบใหม่
+    bme.requestConversion();                      // start the next conversion
   }
-  /* ...งานอื่น ๆ ทำต่อได้ทันที... */
+  /* ...other tasks run here without stalling... */
 }
 ```
 
@@ -227,32 +238,34 @@ void loop() {
 
 ## Pin Mapping Examples
 
-ไลบรารีไม่ hardcode ขาใด ๆ ขาทั้งหมดอยู่ใน sketch เท่านั้น (ดู `02_CustomPins_BusRemap` และ `04_SPI_Advance`)
+The library hardcodes no pins; every pin lives in the sketch (see `02_CustomPins_BusRemap` and `04_SPI_Advance`).
 
-### ESP32 / ESP32-S3 (Arduino-ESP32 core v3.x) — GPIO matrix ย้ายได้ทุกขา
+> 🇹🇭 หมายเลขขาทั้งหมดอยู่ใน sketch เท่านั้น ไลบรารีไม่รู้จักขาใด ๆ
+
+### ESP32 / ESP32-S3 (Arduino-ESP32 core v3.x) — any GPIO via the matrix
 
 ```cpp
-Wire.begin(16, 17, 400000UL);          // I2C บน GPIO16/17 ที่ 400 kHz
+Wire.begin(16, 17, 400000UL);          // I2C on GPIO16/17 at 400 kHz
 bme.begin(0x77, Wire);
 
-Wire1.begin(8, 9);                     // core 3.x มี Wire1 ให้แล้ว (บัสที่สอง)
+Wire1.begin(8, 9);                     // core 3.x provides Wire1 (second bus)
 bme2.begin(0x77, Wire1);
 
-SPI.begin(12, 13, 11, -1);             // S3 : SCK 12, MISO 13, MOSI 11 (ss = -1 ไลบรารีคุม CS เอง)
-bme3.beginSPI(10, SPI, 10000000UL);    // CS = GPIO10 ที่ 10 MHz
+SPI.begin(12, 13, 11, -1);             // S3: SCK 12, MISO 13, MOSI 11 (ss = -1, the library drives CS)
+bme3.beginSPI(10, SPI, 10000000UL);    // CS = GPIO10 at 10 MHz
 ```
 
-### RP2040 (Arduino-Pico) — เลือกได้เฉพาะขาที่เป็นของบัสนั้นตาม pinmux
+### RP2040 (Arduino-Pico) — only pins that belong to that bus per pinmux
 
 ```cpp
-Wire1.setSDA(6);  Wire1.setSCL(7);  Wire1.begin();      // I2C1 บน GP6/GP7
+Wire1.setSDA(6);  Wire1.setSCL(7);  Wire1.begin();      // I2C1 on GP6/GP7
 bme.begin(0x77, Wire1);
 
 SPI.setSCK(18); SPI.setRX(16); SPI.setTX(19); SPI.begin(); // SPI0
 bme2.beginSPI(17, SPI);
 ```
 
-### AVR (Arduino Uno / Nano) — ขาฮาร์ดแวร์ตายตัว
+### AVR (Arduino Uno / Nano) — fixed hardware pins
 
 ```cpp
 Wire.begin();              // SDA = A4, SCL = A5
@@ -265,177 +278,183 @@ bme2.beginSPI(10, SPI);    // CS = D10
 ### STM32 (STM32duino)
 
 ```cpp
-Wire.setSDA(PB9); Wire.setSCL(PB8); Wire.begin();   // remap ก่อน begin()
+Wire.setSDA(PB9); Wire.setSCL(PB8); Wire.begin();   // remap before begin()
 bme.begin(0x77, Wire);
 ```
 
 ---
 
-## คู่มือ API
+## API Reference
 
-### เริ่มต้น / บัส
+### Initialisation / bus
 
-| ฟังก์ชัน | คืนค่า | คำอธิบาย |
+| Function | Returns | Description |
 |---|---|---|
-| `begin(address = 0x77, TwoWire &wirePort = Wire)` | `bool` | เริ่มต้นผ่าน I²C : ตรวจ chip id, รีเซ็ต, อ่านค่าชดเชย, ตั้งค่าเริ่มต้น |
-| `begin(address, TwoWire *wire)` | `bool` | แบบรับตัวชี้ (เข้ากันได้กับ v1.0) |
-| `beginSPI(csPin, SPIClass &spiPort = SPI, spiHz = 1 MHz)` | `bool` | เริ่มต้นผ่าน SPI 4 สาย (clamp 10 MHz) |
-| `beginAuto(wire)` | `bool` | ไล่หาเอง 0x77 แล้ว 0x76 |
-| `getBus()` / `isSPI()` / `getAddress()` / `getCSPin()` | | บัสที่ใช้อยู่ |
-| `isConnected()` | `bool` | I²C = ACK, SPI = chip id ไม่ใช่ 0x00/0xFF |
+| `begin(address = 0x77, TwoWire &wirePort = Wire)` | `bool` | I²C init: chip-id check, soft reset, read calibration, apply defaults |
+| `begin(address, TwoWire *wire)` | `bool` | Pointer overload (v1.0 compatible) |
+| `beginSPI(csPin, SPIClass &spiPort = SPI, spiHz = 1 MHz)` | `bool` | 4-wire SPI init (clamped to 10 MHz) |
+| `beginAuto(wire)` | `bool` | Try 0x77, then 0x76 |
+| `getBus()` / `isSPI()` / `getAddress()` / `getCSPin()` | | Active bus info |
+| `isConnected()` | `bool` | I²C = ACK, SPI = chip id not 0x00/0xFF |
 
-### Simple API (บล็อก)
+### Simple API (blocking)
 
-| ฟังก์ชัน | คืนค่า | คำอธิบาย |
+| Function | Returns | Description |
 |---|---|---|
-| `read(reading)` | `bool` | อ่านทุกค่าในครั้งเดียวจากรอบวัดเดียวกัน **(แนะนำ)** |
-| `readTemperature()` / `readPressure()` / `readPressurePa()` / `readHumidity()` / `readAltitude(seaLevelhPa)` | `float` | คืน `NAN` เมื่อไม่สำเร็จ |
-| `takeForcedMeasurement()` | `bool` | สั่งวัดหนึ่งครั้งแล้วรอจนเสร็จ |
+| `read(reading)` | `bool` | All values from the same conversion in one burst **(recommended)** |
+| `readTemperature()` / `readPressure()` / `readPressurePa()` / `readHumidity()` / `readAltitude(seaLevelhPa)` | `float` | `NAN` on failure |
+| `takeForcedMeasurement()` | `bool` | One forced conversion, waits for completion |
 
-### Advanced Non-blocking FSM
+### Advanced non-blocking FSM
 
-| ฟังก์ชัน | คำอธิบาย |
+| Function | Description |
 |---|---|
-| `requestConversion()` | สั่งวัด → `MEASURING` (ปฏิเสธถ้ากำลังวัดอยู่) |
-| `update()` | เรียกทุกรอบ `loop()` เมื่อครบเวลาตามดาต้าชีตและบิต measuring ลง → `READY` (timeout → `ERROR`) |
-| `isDataReady()` | `true` เมื่อสถานะ `READY` |
-| `getReadings(reading)` | คัดลอกผลแล้วกลับสู่ `IDLE` |
+| `requestConversion()` | Start a conversion → `MEASURING` (refused while busy) |
+| `update()` | Call every `loop()`; when the datasheet time has elapsed and the measuring bit is clear → `READY` (timeout → `ERROR`) |
+| `isDataReady()` | `true` when state is `READY` |
+| `getReadings(reading)` | Copy the result and return to `IDLE` |
 | `getState()` | `IDLE` / `MEASURING` / `READY` / `ERROR` |
-| `startForcedMeasurement()` / `isMeasurementReady()` | ชั้นล่างของ FSM (v1.0) ยังใช้ได้ |
+| `startForcedMeasurement()` / `isMeasurementReady()` | Lower-level primitives (v1.0) still available |
 
-### ตั้งค่า
+### Configuration
 
-| ฟังก์ชัน | คำอธิบาย |
+| Function | Description |
 |---|---|
-| `setSampling(mode, osrsT, osrsP, osrsH, filter, standby)` | ตั้งทั้งชุด เรียงลำดับเขียนรีจิสเตอร์ตามดาต้าชีต (sleep → config → ctrl_hum → ctrl_meas) |
-| `setMode()` · `set{Temperature,Pressure,Humidity}Oversampling()` · `setFilter()` · `setStandbyTime()` | ตั้งทีละค่า (Read-Modify-Write ผ่านค่าที่จำไว้) |
-| `useWeatherStationPreset()` · `useHumiditySensingPreset()` · `useIndoorNavigationPreset()` · `useGamingPreset()` | ชุดสำเร็จรูปตามดาต้าชีตหัวข้อ 3.5 |
-| `reset()` | soft reset แล้วเขียนค่าที่ตั้งไว้กลับให้เอง |
-| `measurementTimeMs()` / `measurementTimeMaxMs()` | เวลาต่อรอบตามหัวข้อ 9.1 |
+| `setSampling(mode, osrsT, osrsP, osrsH, filter, standby)` | Set everything at once; register write order follows the datasheet (sleep → config → ctrl_hum → ctrl_meas) |
+| `setMode()` · `set{Temperature,Pressure,Humidity}Oversampling()` · `setFilter()` · `setStandbyTime()` | Individual settings (read-modify-write from cached state) |
+| `useWeatherStationPreset()` · `useHumiditySensingPreset()` · `useIndoorNavigationPreset()` · `useGamingPreset()` | Bosch-recommended presets (datasheet §3.5) |
+| `reset()` | Soft reset, then re-apply the user settings |
+| `measurementTimeMs()` / `measurementTimeMaxMs()` | Conversion time per datasheet §9.1 |
 
-### ข้อมูลดิบ / ตรวจตัวตน / คำนวณต่อ
+### Raw data / identity / derived values
 
-| ฟังก์ชัน | คำอธิบาย |
+| Function | Description |
 |---|---|
-| `readRawADC(raw)` · `getCalibration(calib)` · `readCalibration()` | ค่าดิบ ADC + `t_fine` และค่าชดเชย 32 ตัว |
-| `readRegister(reg, v)` · `writeRegister(reg, v)` · `readStatus(s)` | เข้าถึงรีจิสเตอร์ตรง |
-| `getChipID()` · `getChipType()` · `verifyChip(&id)` · `isGenuine()` | ตรวจตัวตน 10 ข้อ |
-| `dewPoint(t, rh)` · `absoluteHumidity(t, rh)` · `saturationVaporPressure(t)` · `seaLevelForAltitude(alt, p)` | static |
-| `set{Temperature,Pressure,Humidity}Offset()` · `setSeaLevelPressure()` | ค่าชดเชยที่ผู้ใช้ตั้ง |
-| `lastError()` · `errorToString()` | `massmore_bme280_error_t` 12 รหัส (บน AVR ข้อความเป็น ASCII) |
+| `readRawADC(raw)` · `getCalibration(calib)` · `readCalibration()` | Raw ADC + `t_fine` and the 32 calibration words |
+| `readRegister(reg, v)` · `writeRegister(reg, v)` · `readStatus(s)` | Direct register access |
+| `getChipID()` · `getChipType()` · `verifyChip(&id)` · `isGenuine()` | 10-point identity check |
+| `dewPoint(t, rh)` · `absoluteHumidity(t, rh)` · `saturationVaporPressure(t)` · `seaLevelForAltitude(alt, p)` | static helpers |
+| `set{Temperature,Pressure,Humidity}Offset()` · `setSeaLevelPressure()` | User offsets |
+| `lastError()` · `errorToString()` | `massmore_bme280_error_t`, 12 codes (Thai text; ASCII on AVR) |
 
 ---
 
-## ตัวอย่างทั้งหมด (7 ชุด)
+## Examples (7)
 
-ทุกชุดใช้ซอร์สเดียวกันทั้ง Arduino IDE (`.ino`) และ PlatformIO (`main.cpp`) และคอมไพล์ผ่านบน ESP32-S3 / ESP32 / RP2040 / AVR
+Every example shares one source for Arduino IDE (`.ino`) and PlatformIO (`main.cpp`) and compiles on ESP32-S3 / ESP32 / RP2040 / AVR.
 
-| # | ตัวอย่าง | สิ่งที่ได้เรียนรู้ |
+| # | Example | What you learn (🇹🇭 สิ่งที่ได้เรียนรู้) |
 |---|---|---|
-| 01 | **BasicRead** | อ่านครบสี่ค่า + จุดน้ำค้าง เริ่มจากตรงนี้ (`busBegin()` เลือกขาตาม MCU อัตโนมัติ) |
-| 02 | **CustomPins_BusRemap** | ย้ายขา / ใช้ `Wire1` / RP2040 `setSDA` / STM32 remap ส่งบัสให้ไลบรารีแบบ reference |
-| 03 | **NonBlocking_Multitask** | FSM `requestConversion / update / isDataReady / getReadings` + LED blink + วัดว่า `loop()` ไม่บล็อก |
-| 04 | **SPI_Advance** | บัส SPI 4 สาย, ตั้งขาต่อ MCU, ตรวจความเสถียรของบัส, วัดอัตราอ่านจริง |
-| 05 | **LowPower_ForcedMode** | forced mode + ESP32 deep sleep เก็บค่าใน RTC memory เตือนแนวโน้มความดัน |
-| 06 | **ChipID_Genuine** | สแกนบัส, อ่าน chip id, ตรวจของแท้ 10 ข้อ, ลายนิ้วมือของชิป |
-| 07 | **Factory_Test** | ชุดทดสอบโรงงาน 22 หัวข้อ จบด้วย `[PASS] SENSOR QA PASSED - READY TO SHIP` |
+| 01 | **BasicRead** | All four values + dew point; `busBegin()` picks pins per MCU automatically (อ่านค่าพื้นฐาน เริ่มตรงนี้) |
+| 02 | **CustomPins_BusRemap** | Remap pins / use `Wire1` / RP2040 `setSDA` / STM32 remap; pass the bus by reference (ย้ายขาและใช้บัสที่สอง) |
+| 03 | **NonBlocking_Multitask** | FSM `requestConversion / update / isDataReady / getReadings` + LED blink + proof that `loop()` never stalls (FSM ไม่บล็อก) |
+| 04 | **SPI_Advance** | 4-wire SPI, per-MCU pin setup, bus-stability check, real read-rate measurement (ใช้บัส SPI) |
+| 05 | **LowPower_ForcedMode** | Forced mode + ESP32 deep sleep, RTC memory, pressure-trend warning (ประหยัดไฟ) |
+| 06 | **ChipID_Genuine** | Bus scan, chip id, 10-point genuine check, chip fingerprint (ตรวจของแท้) |
+| 07 | **Factory_Test** | 22-point factory QA ending with `[PASS] SENSOR QA PASSED - READY TO SHIP` (ชุดทดสอบโรงงาน) |
 
 ---
 
-## การตรวจว่าเป็นชิปของแท้
+## Genuine Chip Verification
 
 ```cpp
 massmore_bme280_identity_t id;
 massmore_bme280_genuine_t verdict = bme.verifyChip(&id);   // YES / SUSPECT / NO
 ```
 
-| # | ข้อทดสอบ | ทำไมของปลอมถึงตกข้อนี้ |
-|---|---|---|
-| 1 | `chipIdOk` | รหัสที่ 0xD0 ต้องเป็น 0x60 |
-| 2–3 | `calibTempOk` · `calibPressOk` | ช่วงค่า `dig_T*` / `dig_P*` ที่โรงงาน Bosch ใช้จริงแคบกว่าที่คนนอกเดา |
-| 4 | `calibHumOk` | **BMP280 ที่ถูกสกรีนเป็น BME280 ไม่มีค่าชุดนี้เลย** |
-| 5 | `calibUniqueOk` | ค่าชดเชยของชิปจริงไม่ซ้ำกันแบบตารางที่ใครใส่ไว้ |
-| 6 | `resetOk` | soft reset ต้องล้าง `ctrl_meas` / `ctrl_hum` / `config` เป็น 0x00 จริง |
-| 7 | `ctrlHumLatchOk` | ปิด `osrs_h` แล้วค่าดิบต้องเป็น `0x8000` เปิดแล้วต้องไม่ใช่ — ลักษณะเฉพาะของ BME280 |
-| 8 | `registerEchoOk` | เขียน `config` แล้วอ่านกลับต้องได้ครบทุกบิต |
-| 9 | `measuringBitOk` | บิต measuring ต้องขึ้นระหว่างวัดและลงเองเมื่อเสร็จ |
-| 10 | `humidityLiveOk` | ค่าความชื้นที่คำนวณต้องอยู่ในโลกความจริง |
+> 🇹🇭 ดูแค่ chip id ไม่พอ เพราะของปลอมคัดลอกตัวเลขได้ จึงทดสอบพฤติกรรมจริงของซิลิคอนอีก 9 ข้อ
 
-**เกณฑ์** — ครบ 10 = `GENUINE` · 8–9 = `SUSPECT` · ต่ำกว่า 8 หรือตกข้อ 1/7 = `NO`
+| # | Check | Why clones fail it |
+|---|---|---|
+| 1 | `chipIdOk` | Register 0xD0 must read 0x60 |
+| 2–3 | `calibTempOk` · `calibPressOk` | Bosch factory `dig_T*` / `dig_P*` ranges are narrower than outsiders guess |
+| 4 | `calibHumOk` | **A BMP280 relabelled as BME280 has no humidity calibration at all** |
+| 5 | `calibUniqueOk` | Real calibration words never repeat like a hand-typed table |
+| 6 | `resetOk` | Soft reset must really clear `ctrl_meas` / `ctrl_hum` / `config` to 0x00 |
+| 7 | `ctrlHumLatchOk` | With `osrs_h` off the raw value must be `0x8000`, on it must not — BME280-specific latch behaviour |
+| 8 | `registerEchoOk` | Writing `config` must read back bit-exact |
+| 9 | `measuringBitOk` | The measuring bit must rise during conversion and clear afterwards |
+| 10 | `humidityLiveOk` | The computed humidity must be physically plausible |
+
+**Verdict** — all 10 = `GENUINE` · 8–9 = `SUSPECT` · < 8 or fails #1/#7 = `NO`
 
 ---
 
 ## Factory Test (QA/QC)
 
-`07_Factory_Test` รันเองหลังบูต พิมพ์ `r` เพื่อทดสอบซ้ำ Serial Monitor **115200 baud**
+`07_Factory_Test` runs automatically after boot; type `r` to repeat. Serial Monitor at **115200 baud**.
+
+> 🇹🇭 รันเองหลังบูต พิมพ์ r เพื่อทดสอบซ้ำ บรรทัดสุดท้ายบอกผล PASS/FAIL
 
 ```
-GATE 1    สแกนบัส I2C ยืนยัน address (0x77 / 0x76)
-GATE 2    อ่าน CHIP_ID (0x60) — เจอ 0x58 จะบอกชัดว่าเป็น BMP280 — แล้ว begin()
+GATE 1    Scan the I2C bus and confirm the address (0x77 / 0x76)
+GATE 2    Read CHIP_ID (0x60) — 0x58 is reported explicitly as BMP280 — then begin()
 RUN TEST  SOFT_RESET · CALIB_READ/RANGE/HUM (trim registers) · REG_ECHO · STATUS_REG ·
           SLEEP/FORCED/NORMAL_MODE · HUM_CHANNEL · MEAS_TIMING · NOISE · IIR_FILTER ·
-          READ_VALUES · TEMP/HUM/PRES_RANGE (ช่วงกายภาพ) · DEWPOINT · ALTITUDE ·
-          STABILITY · BUS_400K · PRESETS · GENUINE (heuristic 10 ข้อ)
+          READ_VALUES · TEMP/HUM/PRES_RANGE (physical ranges) · DEWPOINT · ALTITUDE ·
+          STABILITY · BUS_400K · PRESETS · GENUINE (10-point heuristic)
 ```
 
-บรรทัดสุดท้ายของรายงาน
+Last line of the report:
 
 ```
 [PASS] SENSOR QA PASSED - READY TO SHIP
-[FAIL] QA CHECK FAILED: <REASON>          (REASON = ชื่อหัวข้อแรกที่ไม่ผ่าน)
+[FAIL] QA CHECK FAILED: <REASON>          (REASON = first failing check name)
 ```
 
-บรรทัดที่ขึ้นต้นด้วย `#` มีไว้ให้โปรแกรมฝั่งเว็บอ่านอัตโนมัติ
+Lines starting with `#` are machine-readable for a web tool:
 
 ```
-#RESULT,<ลำดับ>,<ชื่อหัวข้อ>,<PASS|FAIL|WARN>,<รายละเอียด>
-#DEVICE,<addr>,<chip>,<chip_id>,<GENUINE|SUSPECT|FAKE|UNKNOWN>,<ผ่านกี่ข้อจาก10>
-#VERDICT,<PASS|FAIL>,<ผ่าน>,<ไม่ผ่าน>,<เตือน>
+#RESULT,<index>,<check>,<PASS|FAIL|WARN>,<detail>
+#DEVICE,<addr>,<chip>,<chip_id>,<GENUINE|SUSPECT|FAKE|UNKNOWN>,<passed_of_10>
+#VERDICT,<PASS|FAIL>,<pass>,<fail>,<warn>
 ```
 
-> บน AVR (flash 32 KB) ข้าม `MEAS_TIMING` `NOISE` `IIR_FILTER` `BUS_400K` เหลือ 18 หัวข้อ
-> เฟิร์มแวร์สำเร็จรูปสำหรับ ESP32 อยู่ที่ [`Firmware/`](Firmware/) (ดู [`Firmware/README.md`](Firmware/README.md))
+> On AVR (32 KB flash) `MEAS_TIMING` `NOISE` `IIR_FILTER` `BUS_400K` are skipped (18 checks remain).
+> Pre-built ESP32 binaries live in [`Firmware/`](Firmware/) (see [`Firmware/README.md`](Firmware/README.md)).
 
 ---
 
-## ชุดทดสอบบนเครื่อง PC
+## Host Test Suite
 
 ```bash
 cd PlatformIO/test && make
-#  ผ่าน 192 ข้อ   ไม่ผ่าน 0 ข้อ   รวม 192 ข้อ
+#  192 passed   0 failed   192 total
 ```
 
-ครอบคลุม : สูตรชดเชยเทียบตัวเลขตัวอย่างในดาต้าชีต (`adc_T = 519888 → 25.08 °C`, `adc_P = 415148 → 100653.27 Pa`) ·
-การถอด `dig_H4/H5` · ลำดับเขียนรีจิสเตอร์ · สูตรเวลา · เส้นทางผิดพลาด · แยก BMP280 ·
-**บัส SPI** (control byte, mode 0, clamp 10 MHz, ไม่มีชิป) · **FSM** (IDLE → MEASURING → READY → IDLE, timeout → ERROR) ·
-ยืนยันว่าไลบรารี **ไม่เรียก** `Wire.begin()` / `SPI.begin()`
+Covers: compensation formulas against datasheet example values (`adc_T = 519888 → 25.08 °C`, `adc_P = 415148 → 100653.27 Pa`) ·
+`dig_H4/H5` decoding · register write order · timing formulas · error paths · BMP280 rejection ·
+**SPI bus** (control byte, mode 0, 10 MHz clamp, no-chip case) · **FSM** (IDLE → MEASURING → READY → IDLE, timeout → ERROR) ·
+proof that the library **never** calls `Wire.begin()` / `SPI.begin()`
+
+> 🇹🇭 ชุดทดสอบ 192 ข้อรันบน PC ด้วย g++ ไม่ต้องมีบอร์ด
 
 ---
 
-## แก้ปัญหาที่พบบ่อย
+## Troubleshooting
 
-| อาการ | สาเหตุที่พบบ่อยที่สุด | วิธีแก้ |
+| Symptom | Most likely cause | Fix (🇹🇭 วิธีแก้) |
 |---|---|---|
-| `begin()` ไม่ผ่าน · `ไม่มีอุปกรณ์ตอบ` | ยังไม่ได้เรียก `Wire.begin()` ใน sketch (ไลบรารีไม่เรียกให้แล้ว) หรือ SDI/SCK สลับข้าง | เรียก `Wire.begin(...)` ก่อน แล้วรัน `06_ChipID_Genuine` เพื่อสแกนบัส |
-| สแกนเจอ `0x76` แทน `0x77` | ขา `SDO` ถูกต่อลง GND | `bme.begin(MASSMORE_BME280_I2C_ADDR_A)` หรือ `beginAuto()` |
-| `beginSPI()` ไม่ผ่าน (chip id 0x00/0xFF) | SDI/SDO สลับกัน หรือเสียบ Qwiic พร้อมกัน (CS ถูกดึงขึ้น) หรือความถี่สูงเกินกับสายยาว | ตรวจ SDI→MOSI, SDO→MISO ถอด Qwiic ลด `spiHz` เหลือ 1 MHz |
-| `รหัสชิปไม่ใช่ 0x60` | บอร์ดเป็น **BMP280** | BMP280 ใช้ไลบรารีนี้ไม่ได้ |
-| `read()` คืน `ERR_NOT_READY` | FSM กำลังวัดค้าง (`requestConversion()` แล้วยังไม่ `getReadings()`) | ใช้ API แบบใดแบบหนึ่งต่อรอบ |
-| ความชื้นเป็น `NAN` | `osrs_h = NONE` | `setHumidityOversampling(X1)` |
-| อุณหภูมิสูงกว่าจริง 1–3 °C | ความร้อนจาก MCU | แยกบอร์ดออกห่าง หรือ `setTemperatureOffset(-1.5f)` |
-| AVR compile ไม่ผ่าน "program size" | Nano bootloader เก่า flash 30 KB | ใช้ `board = nanoatmega328new` หรือ `uno` (Factory Test ใช้ 98.8 % ของ 30 KB) |
-| อัปโหลดไม่ผ่านบน macOS | `upload_speed` สูงเกิน | ลด `460800` / `115200` ใน `platformio.ini` |
+| `begin()` fails · "no device" | `Wire.begin()` not called in the sketch (the library no longer does it) or SDI/SCK swapped | Call `Wire.begin(...)` first, then run `06_ChipID_Genuine` to scan the bus |
+| Scan finds `0x76` instead of `0x77` | `SDO` is tied to GND | `bme.begin(MASSMORE_BME280_I2C_ADDR_A)` or `beginAuto()` |
+| `beginSPI()` fails (chip id 0x00/0xFF) | SDI/SDO swapped, Qwiic still plugged in (CS pulled high), or clock too fast for long wires | Check SDI→MOSI, SDO→MISO, unplug Qwiic, drop `spiHz` to 1 MHz |
+| "chip id is not 0x60" | The board is a **BMP280** | BMP280 is not supported by this library |
+| `read()` returns `ERR_NOT_READY` | FSM conversion in flight (`requestConversion()` without `getReadings()`) | Use one API style per cycle |
+| Humidity is `NAN` | `osrs_h = NONE` | `setHumidityOversampling(X1)` |
+| Temperature 1–3 °C too high | Heat from the MCU | Move the board away or `setTemperatureOffset(-1.5f)` |
+| AVR "program size" error | Old-bootloader Nano has 30 KB flash | Use `board = nanoatmega328new` or `uno` (Factory Test uses 98.8 % of 30 KB) |
+| Upload fails on macOS | `upload_speed` too high | Lower to `460800` / `115200` in `platformio.ini` |
 
 ---
 
-## โครงสร้างรีโป
+## Repository Layout
 
 ```
 Massmore_BME280_SKU-1023/
-├── README.md                          <- ไฟล์นี้ (Showcase, Pinout, MCU Matrix, Where to Buy)
+├── README.md                          <- this file (showcase, pinout, MCU matrix, where to buy)
 ├── ArduinoIDE/
 │   ├── README.md
-│   ├── Massmore_BME280.zip            <- Add .ZIP Library ได้ทันที
+│   ├── Massmore_BME280.zip            <- ready for Add .ZIP Library
 │   ├── make_zip.sh
 │   └── Massmore_BME280/
 │       ├── library.properties · keywords.txt · CHANGELOG.md · LICENSE
@@ -443,72 +462,74 @@ Massmore_BME280_SKU-1023/
 │       └── examples/
 │           ├── 01_BasicRead/  02_CustomPins_BusRemap/  03_NonBlocking_Multitask/
 │           ├── 04_SPI_Advance/  05_LowPower_ForcedMode/  06_ChipID_Genuine/
-│           └── 07_Factory_Test/                       (Mandatory QA/QC)
+│           └── 07_Factory_Test/                       (mandatory QA/QC)
 ├── PlatformIO/
 │   ├── platformio.ini                 esp32-s3-devkitc-1 · esp32dev · pico · uno · nanoatmega328
-│   ├── src/main.cpp                   ที่วางตัวอย่างที่กำลังใช้
+│   ├── src/main.cpp                   the example currently in use
 │   ├── include/
-│   ├── lib/Massmore_BME280/           ซอร์สชุดเดียวกับฝั่ง Arduino IDE (byte-identical)
-│   ├── examples/                      ตัวอย่าง 7 ชุด (main.cpp)
-│   └── test/                          ชุดทดสอบบนเครื่อง PC 192 ข้อ (ชิปจำลอง I2C + SPI)
+│   ├── lib/Massmore_BME280/           same sources as the Arduino IDE tree (byte-identical)
+│   ├── examples/                      7 examples (main.cpp)
+│   └── test/                          192 host tests (simulated I2C + SPI chip)
 ├── Document/
-│   ├── README.md                      สงวนไว้สำหรับ schematic / ภาพจากผู้ใช้
+│   ├── README.md                      reserved for schematics / user-supplied images
 │   └── images/
 ├── Firmware/
-│   ├── README.md                      คู่มือแฟลช การต่อสาย รายงานที่คาดหวัง
-│   └── bin/                           ไบนารี Factory Test สำเร็จรูป + สคริปต์แฟลช
-├── .github/workflows/build.yml        CI: host test + PlatformIO matrix + arduino-cli 4 FQBN
+│   ├── README.md                      flashing manual, wiring notes, expected report
+│   └── bin/                           pre-built Factory Test binaries + flash scripts
+├── .github/workflows/build.yml        CI: host tests + PlatformIO matrix + arduino-cli (4 FQBN)
 └── LICENSE
 ```
 
 ---
 
-## เอกสารอ้างอิง
+## References
 
 - Bosch Sensortec **BST-BME280-DS002** — <https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf>
 - Espressif **Arduino ESP32 core 3.x** — <https://github.com/espressif/arduino-esp32>
 - **pioarduino** platform-espressif32 — <https://github.com/pioarduino/platform-espressif32>
 - **Arduino-Pico** (Earle Philhower) — <https://github.com/earlephilhower/arduino-pico>
 
-## สัญญาอนุญาต
+## License
 
-MIT License — ดูรายละเอียดที่ [LICENSE](LICENSE)
+MIT License — see [LICENSE](LICENSE)
 
 ---
 
 ## Massmore Pre-Release Audit & Missing Information Report
 
-รายการที่ **ไม่ได้เดา** และมาร์กไว้ในโค้ด/เอกสารด้วย `// TODO: [MASSMORE_INPUT_REQUIRED: ...]`
+Items that were **not guessed** and are marked in code/docs with `// TODO: [MASSMORE_INPUT_REQUIRED: ...]`.
+
+> 🇹🇭 รายการข้อมูลที่ยังขาดและไม่ได้เดา มาร์ก TODO ไว้ในโค้ดและเอกสาร
 
 ### Missing Datasheet Registers / Silicon details
 
-| รายการ | สถานะ | ที่อยู่ในรีโป |
+| Item | Status | Location |
 |---|---|---|
-| Factory trim / signature register สำหรับแยก genuine vs clone | Bosch ไม่เผยแพร่อย่างเป็นทางการ — ใช้ heuristic 10 ข้อแทน | `Massmore_BME280.h` (หัวไฟล์), README ส่วน Pre-flight |
-| Silicon revision register | BME280 ไม่มี — Factory Test แสดงเฉพาะ CHIP_ID + trim registers (`CALIB_READ`) | – |
+| Factory trim / signature register to separate genuine from clone | Not published by Bosch — 10-point heuristic used instead | `Massmore_BME280.h` header, README Pre-flight section |
+| Silicon-revision register | BME280 has none — Factory Test shows CHIP_ID + trim registers (`CALIB_READ`) | – |
 
 ### Missing Hardware Pinouts / Board revisions
 
-| รายการ | สถานะ | ที่อยู่ในรีโป |
+| Item | Status | Location |
 |---|---|---|
-| Schematic PDF ของบอร์ด SKU-1023 | ยังไม่มีในรีโป | `Document/README.md` |
-| หมายเลข revision ของ PCB และวันที่ผลิต | ไม่ระบุใน input | `Document/README.md` |
-| การยืนยันว่า SDO ดึงขึ้น VDDIO บนบอร์ด (ทำให้ปริยาย = 0x77) | อ้างอิงจาก input ของผู้ใช้ — ควรยืนยันกับ schematic | README ส่วน Pinout |
-| ไบนารี Factory Test v1.1.0 (esp32dev / esp32-s3) | รอสร้างหลังผ่าน Hardware Test — ตอนนี้มีเฉพาะ v1.0.0 | `Firmware/README.md` |
-| ผลทดสอบบนฮาร์ดแวร์ STM32 | คอมไพล์ผ่านตามหลักการ ยังไม่ได้ทดสอบจริง | MCU Matrix |
+| Schematic PDF of SKU-1023 | Not in repository | `Document/README.md` |
+| PCB revision number and production date | Not provided | `Document/README.md` |
+| Confirmation that SDO is pulled to VDDIO on the board (default = 0x77) | Taken from user input — should be confirmed against the schematic | README Pinout section |
+| Factory Test binaries v1.1.0 (esp32dev / esp32-s3) | Built, awaiting hardware verification | `Firmware/README.md` |
+| STM32 hardware test result | Compiles by design, not tested on hardware | MCU matrix |
 
 ### Missing Commercial Links (Shopee, Lazada, Docs)
 
-| รายการ | สถานะ |
+| Item | Status |
 |---|---|
 | Shopee product link | `// TODO: [MASSMORE_INPUT_REQUIRED: Shopee product link]` |
 | Lazada product link | `// TODO: [MASSMORE_INPUT_REQUIRED: Lazada product link]` |
 | Massmore Official Store | ✅ <https://www.massmore.shop/products/bf997665-da75-4b6f-9a98-100a5dc4030f> |
-| Datasheet | ✅ ลิงก์ Bosch ด้านบน (ยังไม่ได้วางสำเนาใน `Document/datasheet/`) |
+| Datasheet | ✅ Bosch link above (copy not yet placed in `Document/datasheet/`) |
 
 ---
 
 <p align="center">
   <b>Designed and Manufactured by Massmore</b> · <a href="https://www.massmore.shop">massmore.shop</a><br>
-  <sub>Massmore Biz Co., Ltd. — สินค้ามีรับประกัน ออกใบกำกับภาษีได้ จัดส่งทุกวัน</sub>
+  <sub>Massmore Biz Co., Ltd. — Warranty included · Tax invoice available · Ships daily</sub>
 </p>

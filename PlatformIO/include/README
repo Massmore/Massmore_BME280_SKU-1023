@@ -1,8 +1,10 @@
-โฟลเดอร์ include/ สำหรับ header ของโปรเจกต์ (ไม่ใช่ของไลบรารี)
+include/ is for project headers (not library headers).
 
-ไลบรารี Massmore_BME280 อยู่ที่ lib/Massmore_BME280/src/ และ PlatformIO
-จะเพิ่ม include path ให้เองอัตโนมัติ  ใน src/main.cpp เรียกใช้ได้ทันทีด้วย
+The Massmore_BME280 library lives in lib/Massmore_BME280/src/ and PlatformIO
+adds it to the include path automatically. In src/main.cpp simply use
 
     #include <Massmore_BME280.h>
 
-ถ้าต้องการ header ของโปรเจกต์คุณเอง (เช่น config.h) ให้วางไว้ที่นี่
+Put your own project headers (e.g. config.h) here.
+
+TH: โฟลเดอร์นี้สำหรับ header ของโปรเจกต์คุณเอง ไลบรารีอยู่ใน lib/ แล้ว ไม่ต้องคัดลอกมา

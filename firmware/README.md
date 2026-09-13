@@ -1,64 +1,65 @@
-# เฟิร์มแวร์สำเร็จรูป — Massmore BME280 Factory Test (SKU-1023)
+# Pre-built Firmware — Massmore BME280 Factory Test (SKU-1023)
 
 <p align="center">
   <img src="../Document/images/01_massmore_bme280_cover.png" alt="Massmore BME280" width="420">
 </p>
 
-ไฟล์ในโฟลเดอร์นี้คือ **ชุดทดสอบโรงงาน** (ตัวอย่าง `07_Factory_Test`) ที่คอมไพล์ไว้แล้ว
-แฟลชลงบอร์ด ESP32 ได้ทันทีโดยไม่ต้องติดตั้ง Arduino IDE หรือ PlatformIO
+This folder holds the **Factory Test** (`examples/07_Factory_Test`) already compiled, so it can be flashed onto an
+ESP32 / ESP32-S3 without installing the Arduino IDE or PlatformIO.
 
-เหมาะกับ
+> 🇹🇭 เฟิร์มแวร์ชุดทดสอบโรงงานที่คอมไพล์ไว้แล้ว แฟลชลง ESP32 / ESP32-S3 ได้ทันทีโดยไม่ต้องลง IDE
 
-- ตรวจบอร์ดทีละหลายแผ่นในสายการผลิต
-- ตรวจว่าบอร์ดที่เพิ่งได้รับใช้งานได้ครบทุกฟังก์ชันจริง
-- แยก **BME280 (0x60)** ออกจาก **BMP280 (0x58)** ให้ชัดเจน
-- ตรวจว่าชิปเป็น Bosch ของแท้หรือไม่ ด้วยการทดสอบพฤติกรรม 10 ข้อ
+Use it to
+
+- test many boards in a row on the production line
+- confirm that a newly received board works on every function
+- separate **BME280 (0x60)** from **BMP280 (0x58)**
+- verify the chip is genuine Bosch silicon (10-point behavioural check)
 
 ---
 
-## ไฟล์ในโฟลเดอร์นี้
+## Files
 
-ไบนารีทั้งหมดอยู่ใน [`bin/`](bin/) (เวอร์ชัน **1.1.0** = ไลบรารี 1.1.0, address ปริยาย 0x77 และสแกนหา 0x76 ด้วย)
+All binaries are in [`bin/`](bin/) (version **1.1.0** = library 1.1.0; default address 0x77, 0x76 is scanned too).
 
-| ไฟล์ใน `bin/` | บอร์ด | offset | คำอธิบาย |
+| File in `bin/` | Board | Offset | Description |
 |---|---|---|---|
-| `Massmore_BME280_FactoryTest_v1.1.0_esp32dev_merged.bin` | ESP32 classic | `0x0` | **ไฟล์เดียวจบ** แนะนำ |
-| `Massmore_BME280_FactoryTest_v1.1.0_esp32-s3-devkitc-1_merged.bin` | ESP32-S3 | `0x0` | **ไฟล์เดียวจบ** แนะนำ |
-| `Massmore_BME280_FactoryTest_v1.1.0_<board>.bin` | ทั้งสอง | `0x10000` | เฉพาะแอปพลิเคชัน |
-| `parts/<board>/bootloader.bin` | ทั้งสอง | ESP32 `0x1000` · S3 `0x0` | บูตโหลดเดอร์ |
-| `parts/<board>/partitions.bin` | ทั้งสอง | `0x8000` | ตารางพาร์ทิชัน |
-| `parts/<board>/boot_app0.bin` | ทั้งสอง | `0xe000` | ตัวเลือกพาร์ทิชัน OTA |
-| `Massmore_BME280_FactoryTest_v1.0.0_esp32dev*.bin` | ESP32 classic | – | รุ่นเก่า (ไลบรารี 1.0.0) เก็บไว้อ้างอิง |
-| `manifest.json` | – | – | ข้อมูลการบิลด์ทั้งสองบอร์ด ใช้กับ ESP Web Tools ได้ |
-| `SHA256SUMS.txt` | – | – | ค่าแฮชไว้ตรวจว่าไฟล์ไม่เสียหาย |
-| `flash_mac.command` / `flash_linux.sh` | – | – | สคริปต์แฟลช (รับชื่อบอร์ดเป็นพารามิเตอร์แรก) |
+| `Massmore_BME280_FactoryTest_v1.1.0_esp32dev_merged.bin` | ESP32 classic | `0x0` | **Single merged file** — recommended |
+| `Massmore_BME280_FactoryTest_v1.1.0_esp32-s3-devkitc-1_merged.bin` | ESP32-S3 | `0x0` | **Single merged file** — recommended |
+| `Massmore_BME280_FactoryTest_v1.1.0_<board>.bin` | both | `0x10000` | Application only |
+| `parts/<board>/bootloader.bin` | both | ESP32 `0x1000` · S3 `0x0` | Bootloader |
+| `parts/<board>/partitions.bin` | both | `0x8000` | Partition table |
+| `parts/<board>/boot_app0.bin` | both | `0xe000` | OTA data |
+| `Massmore_BME280_FactoryTest_v1.0.0_esp32dev*.bin` | ESP32 classic | – | Previous release (library 1.0.0), kept for reference |
+| `manifest.json` | – | – | Build info for both boards, ESP Web Tools compatible |
+| `SHA256SUMS.txt` | – | – | Checksums |
+| `flash_mac.command` / `flash_linux.sh` | – | – | Flash scripts (first argument = board name) |
 
-> **สถานะ v1.1.0** : บิลด์ผ่านแล้วบน PlatformIO แต่ **ยังรอผล MASSMORE HARDWARE TEST บนบอร์ดจริง**
+> **v1.1.0 status**: builds cleanly on PlatformIO but **hardware verification is still pending**.
 > `// TODO: [MASSMORE_INPUT_REQUIRED: v1.1.0 hardware test result on ESP32-S3 / ESP32 / Arduino Nano]`
-> สำหรับ Arduino Nano ไม่มีไบนารีสำเร็จรูป (ต้องอัปโหลดผ่าน IDE เพราะ bootloader/ฟิวส์ต่างกันตามล็อต) ใช้ `07_Factory_Test` จาก IDE ได้เลย
+> No pre-built binary is provided for Arduino Nano (bootloader/fuses vary per lot); upload `07_Factory_Test` from the IDE instead.
 
-**ข้อมูลการบิลด์**
+**Build info**
 
-| หัวข้อ | ค่า |
+| Item | Value |
 |---|---|
-| ตัวอย่างที่ใช้ | `examples/07_Factory_Test` ไลบรารี Massmore_BME280 1.1.0 |
-| บอร์ด | `esp32dev` (ESP32-WROOM-32, แฟลช 4 MB) · `esp32-s3-devkitc-1` (แฟลช 8 MB, USB-CDC on boot) |
-| Arduino ESP32 core | 3.3.11 (ฐาน ESP-IDF v5.x) ผ่าน pioarduino platform-espressif32 55.03.311 |
+| Sketch | `examples/07_Factory_Test`, library Massmore_BME280 1.1.0 |
+| Boards | `esp32dev` (ESP32-WROOM-32, 4 MB flash) · `esp32-s3-devkitc-1` (8 MB flash, USB-CDC on boot) |
+| Arduino ESP32 core | 3.3.11 (ESP-IDF v5.x) via pioarduino platform-espressif32 55.03.311 |
 | Serial Monitor | **115200** baud |
-| ขา I²C (ขาปริยายของ variant) | ESP32: SDA **GPIO 21** · SCL **GPIO 22** — ESP32-S3: SDA **GPIO 8** · SCL **GPIO 9** |
-| บรรทัดสุดท้ายที่ต้องเห็น | `[PASS] SENSOR QA PASSED - READY TO SHIP` |
+| I²C pins (variant defaults) | ESP32: SDA **GPIO 21** · SCL **GPIO 22** — ESP32-S3: SDA **GPIO 8** · SCL **GPIO 9** |
+| Expected last line | `[PASS] SENSOR QA PASSED - READY TO SHIP` |
 
 ---
 
-## วิธีที่ 1 — ใช้สคริปต์สำเร็จรูป (ง่ายที่สุด)
+## Method 1 — flash scripts (easiest)
 
 ### macOS
 
-1. เสียบบอร์ด ESP32 เข้าคอมพิวเตอร์ด้วยสาย USB ที่ **ส่งข้อมูลได้** (ไม่ใช่สายชาร์จอย่างเดียว)
-2. ดับเบิลคลิก `flash_mac.command`
-   ถ้า macOS ไม่ยอมเปิด ให้ **คลิกขวา → Open → Open**
+1. Connect the ESP32 with a USB cable that **carries data** (not a charge-only cable)
+2. Double-click `bin/flash_mac.command` (if macOS refuses, **right-click → Open → Open**)
 
-หรือรันในเทอร์มินัล
+Or from a terminal:
 
 ```bash
 cd bin
@@ -72,54 +73,56 @@ chmod +x flash_mac.command
 ```bash
 cd bin
 chmod +x flash_linux.sh
-./flash_linux.sh                                # esp32dev ให้สคริปต์หาพอร์ตเอง
+./flash_linux.sh                                # esp32dev, auto-detect port
 ./flash_linux.sh esp32-s3-devkitc-1             # ESP32-S3
-./flash_linux.sh esp32dev /dev/ttyUSB0          # ระบุพอร์ตเอง
+./flash_linux.sh esp32dev /dev/ttyUSB0          # explicit port
 ```
 
-ถ้าเจอ `Permission denied` ให้เพิ่มตัวเองเข้ากลุ่ม `dialout` แล้ว logout/login ใหม่
+On `Permission denied`, add yourself to `dialout` and log in again:
 
 ```bash
 sudo usermod -a -G dialout $USER
 ```
 
-สคริปต์ทั้งสองต้องมี `esptool` ติดตั้งไว้ก่อน
+Both scripts need `esptool`:
 
 ```bash
 pip3 install esptool
 ```
 
+> 🇹🇭 เสียบบอร์ด แล้วดับเบิลคลิก `flash_mac.command` (หรือรันสคริปต์ Linux) ต้องมี esptool ก่อน
+
 ---
 
-## วิธีที่ 2 — พิมพ์คำสั่ง esptool เอง
+## Method 2 — esptool by hand
 
-### ไฟล์เดียวจบ (แนะนำ)
+### Merged file (recommended)
 
 ```bash
 # ESP32 classic
-esptool.py --chip esp32 --port <พอร์ตของคุณ> --baud 512000 \
+esptool.py --chip esp32 --port <your-port> --baud 512000 \
   write_flash -z --flash_mode keep --flash_freq keep --flash_size keep \
   0x0 bin/Massmore_BME280_FactoryTest_v1.1.0_esp32dev_merged.bin
 
 # ESP32-S3
-esptool.py --chip esp32s3 --port <พอร์ตของคุณ> --baud 512000 \
+esptool.py --chip esp32s3 --port <your-port> --baud 512000 \
   write_flash -z --flash_mode keep --flash_freq keep --flash_size keep \
   0x0 bin/Massmore_BME280_FactoryTest_v1.1.0_esp32-s3-devkitc-1_merged.bin
 ```
 
-### แยกไฟล์ (เมื่ออยากเก็บพาร์ทิชันเดิมไว้)
+### Separate parts (to keep an existing partition layout)
 
 ```bash
-# ESP32 classic (bootloader ที่ 0x1000)
-esptool.py --chip esp32 --port <พอร์ตของคุณ> --baud 512000 \
+# ESP32 classic (bootloader at 0x1000)
+esptool.py --chip esp32 --port <your-port> --baud 512000 \
   write_flash -z --flash_mode dio --flash_freq 40m --flash_size 4MB \
   0x1000  bin/parts/esp32dev/bootloader.bin \
   0x8000  bin/parts/esp32dev/partitions.bin \
   0xe000  bin/parts/esp32dev/boot_app0.bin \
   0x10000 bin/Massmore_BME280_FactoryTest_v1.1.0_esp32dev.bin
 
-# ESP32-S3 (bootloader ที่ 0x0)
-esptool.py --chip esp32s3 --port <พอร์ตของคุณ> --baud 512000 \
+# ESP32-S3 (bootloader at 0x0)
+esptool.py --chip esp32s3 --port <your-port> --baud 512000 \
   write_flash -z --flash_mode keep --flash_freq keep --flash_size keep \
   0x0     bin/parts/esp32-s3-devkitc-1/bootloader.bin \
   0x8000  bin/parts/esp32-s3-devkitc-1/partitions.bin \
@@ -127,27 +130,26 @@ esptool.py --chip esp32s3 --port <พอร์ตของคุณ> --baud 5120
   0x10000 bin/Massmore_BME280_FactoryTest_v1.1.0_esp32-s3-devkitc-1.bin
 ```
 
-**หาพอร์ตยังไง**
+**Finding the port**
 
-| ระบบปฏิบัติการ | คำสั่ง | ตัวอย่างชื่อพอร์ต |
+| OS | Command | Typical name |
 |---|---|---|
-| macOS | `ls /dev/cu.*` | `/dev/cu.usbserial-0001` · `/dev/cu.wchusbserial1420` |
-| Linux | `ls /dev/ttyUSB* /dev/ttyACM*` | `/dev/ttyUSB0` |
+| macOS | `ls /dev/cu.*` | `/dev/cu.usbserial-0001` · `/dev/cu.wchusbserial1420` · `/dev/cu.usbmodem*` (S3) |
+| Linux | `ls /dev/ttyUSB* /dev/ttyACM*` | `/dev/ttyUSB0` · `/dev/ttyACM0` (S3) |
 | Windows | Device Manager → Ports (COM & LPT) | `COM5` |
 
-> `--baud 512000` คือค่าที่นิ่งที่สุดบน macOS กับบอร์ด Massmore
-> ถ้าเจอ `Timed out waiting for packet header` ให้ลดเป็น `460800` หรือ `115200`
+> `--baud 512000` is the most stable value on macOS with Massmore boards.
+> On `Timed out waiting for packet header`, drop to `460800` or `115200`.
 
 ---
 
-## วิธีที่ 3 — ผ่านเว็บเบราว์เซอร์
+## Method 3 — web browser
 
-`manifest.json` ในโฟลเดอร์นี้เตรียมไว้ให้ใช้กับ **ESP Web Tools** ได้เลย
-เปิดจากเบราว์เซอร์ที่รองรับ Web Serial (Chrome หรือ Edge) แล้วแฟลชได้โดยไม่ต้องลงโปรแกรมอะไรเลย
+`bin/manifest.json` is prepared for **ESP Web Tools**. Open it in a Web-Serial-capable browser (Chrome or Edge) and flash without installing anything.
 
 ---
 
-## ตรวจสอบว่าไฟล์ไม่เสียหาย
+## Verify file integrity
 
 ```bash
 cd bin
@@ -157,23 +159,25 @@ sha256sum -c SHA256SUMS.txt         # Linux
 
 ---
 
-## หลังแฟลชเสร็จ ต้องทำอะไรต่อ
+## After flashing
 
-1. ต่อบอร์ด **Massmore BME280** เข้ากับ ESP32
-   เสียบสาย Qwiic เส้นเดียว หรือต่อสายเปล่า `VIN → 3V3/5V` · `GND → GND` · `SDI → SDA` · `SCK → SCL`
+1. Connect the **Massmore BME280** to the ESP32 — one Qwiic cable, or wires:
+   `VIN → 3V3/5V` · `GND → GND` · `SDI → SDA` · `SCK → SCL`
    (ESP32 classic: SDA GPIO 21 / SCL GPIO 22 — ESP32-S3: SDA GPIO 8 / SCL GPIO 9)
 
    <p align="center">
      <img src="../Document/images/03_massmore_bme280_wiring_esp32.png" alt="wiring" width="480">
    </p>
 
-2. เปิด **Serial Monitor ที่ 115200 baud**
-3. กดปุ่ม **EN / RESET** บนบอร์ด ESP32 การทดสอบจะเริ่มเองทันที
-4. พิมพ์ `r` แล้วกด Enter เพื่อทดสอบซ้ำ (ใช้ตอนตรวจบอร์ดทีละหลายแผ่น)
+2. Open the **Serial Monitor at 115200 baud**
+3. Press **EN / RESET** on the ESP32 — the test starts automatically
+4. Type `r` + Enter to run again (handy when testing boards one after another)
+
+> 🇹🇭 ต่อเซ็นเซอร์ เปิด Serial Monitor 115200 กด RESET แล้วดูบรรทัดสุดท้าย พิมพ์ r เพื่อทดสอบซ้ำ
 
 ---
 
-## ตัวอย่างผลที่ควรเห็น
+## Expected output
 
 ```
 ==========================================================
@@ -199,7 +203,6 @@ sha256sum -c SHA256SUMS.txt         # Linux
 
 [ สรุป ]
   ผ่าน 22   เตือน 0   ไม่ผ่าน 0
-
 ==========================================================
 #DEVICE,0x77,BME280,0x60,GENUINE,10
 #VERDICT,PASS,22,0,0
@@ -207,55 +210,47 @@ sha256sum -c SHA256SUMS.txt         # Linux
 [PASS] SENSOR QA PASSED - READY TO SHIP
 ```
 
+(Per-check detail text is in Thai; the check names, `#` lines and the final verdict are ASCII.)
+
 ---
 
-## บรรทัดที่ให้โปรแกรมฝั่งเว็บอ่าน
-
-ทุกบรรทัดที่ขึ้นต้นด้วย `#` ออกแบบมาให้ parse ได้ง่าย ไม่ต้องแกะข้อความภาษาไทย
+## Machine-readable lines
 
 ```
-#RESULT,<ลำดับ>,<ชื่อหัวข้อ>,<PASS|FAIL|WARN>,<รายละเอียด>
-#DEVICE,<addr>,<chip>,<chip_id>,<GENUINE|SUSPECT|FAKE|UNKNOWN>,<ผ่านกี่ข้อจาก10>
-#VERDICT,<PASS|FAIL>,<ผ่าน>,<ไม่ผ่าน>,<เตือน>
+#RESULT,<index>,<check>,<PASS|FAIL|WARN>,<detail>
+#DEVICE,<addr>,<chip>,<chip_id>,<GENUINE|SUSPECT|FAKE|UNKNOWN>,<passed_of_10>
+#VERDICT,<PASS|FAIL>,<pass>,<fail>,<warn>
 ```
 
-| ฟิลด์ | ค่าที่เป็นไปได้ |
-|---|---|
-| `<ชื่อหัวข้อ>` | `I2C_SCAN` `CHIP_ID` `BEGIN` `SOFT_RESET` `CALIB_READ` `CALIB_RANGE` `CALIB_HUM` `REG_ECHO` `STATUS_REG` `SLEEP_MODE` `FORCED_MODE` `NORMAL_MODE` `HUM_CHANNEL` `MEAS_TIMING` `NOISE` `IIR_FILTER` `READ_VALUES` `TEMP_RANGE` `HUM_RANGE` `PRES_RANGE` `DEWPOINT` `ALTITUDE` `STABILITY` `BUS_400K` `PRESETS` `GENUINE` |
-| `<chip>` | `BME280` `BMP280` `BME680` `ไม่รู้จัก` `ไม่มีการตอบสนอง` |
-| `WARN` | หัวข้อที่ไม่ผ่านแต่ **ไม่ถือว่าบอร์ดเสีย** เช่นบัส 400 kHz ไม่นิ่งเพราะสายยาว |
-
-ตัวเลข `#VERDICT` เป็น `PASS` ก็ต่อเมื่อ **ไม่มีหัวข้อไหนเป็น FAIL เลย** และผ่านทั้งสองด่านคัดกรอง
+A web tool only needs to watch for `#VERDICT,PASS` — or the final `[PASS]` / `[FAIL]` line.
 
 ---
 
-## แก้ปัญหา
+## Troubleshooting
 
-| อาการ | วิธีแก้ |
+| Symptom | Fix |
 |---|---|
-| `ไม่พบพอร์ต USB ของบอร์ด` | สาย USB อาจเป็นสายชาร์จอย่างเดียว · ถ้าเป็นชิป CH340 ต้องลงไดรเวอร์ก่อน |
-| `Failed to connect to ESP32` | กดปุ่ม **BOOT** ค้างไว้ตอนเริ่มแฟลช แล้วปล่อยเมื่อขึ้น `Connecting...` |
-| `Timed out waiting for packet header` | ลด `--baud` เป็น `460800` หรือ `115200` |
-| แฟลชผ่านแต่ Serial ไม่ขึ้นอะไร | ตรวจว่าตั้ง Serial Monitor ที่ **115200** และกดปุ่ม EN/RESET หนึ่งครั้ง |
-| `I2C_SCAN` ไม่ผ่าน | ตรวจ `VIN` `GND` `SDA→21` `SCL→22` และสาย Qwiic ทั้งสองหัว |
-| `CHIP_ID` ขึ้น 0x58 | บอร์ดนี้เป็น **BMP280** ซึ่งวัดความชื้นไม่ได้ ตรวจช่องติ๊กบนซิลค์สกรีน |
-| `NOISE` ไม่ผ่าน | บอร์ดอาจโดนลมหรือแรงสั่นสะเทือน ลองทดสอบซ้ำในที่นิ่ง ๆ |
+| No serial port appears | Use a data USB cable; install the CH340 driver; on ESP32-S3 hold **BOOT** and tap **RESET** to enter download mode |
+| `Timed out waiting for packet header` | Lower the baud rate to 460800 or 115200 |
+| Serial Monitor shows garbage | Set 115200 baud; ESP32-S3 output is on the USB port (USB-CDC) |
+| `[FAIL] QA CHECK FAILED: I2C_SCAN` | Check VIN/GND/SDI/SCK wiring and the Qwiic cable |
+| `[FAIL] QA CHECK FAILED: CHIP_ID` | The board is a BMP280 (0x58) — see the silkscreen tick box |
 
 ---
 
-## บิลด์ใหม่เอง
+## Rebuild it yourself
 
 ```bash
 cd ../PlatformIO
 cp examples/07_Factory_Test/main.cpp src/main.cpp
-pio run -e esp32dev                  # หรือ -e esp32-s3-devkitc-1
+pio run -e esp32dev                  # or -e esp32-s3-devkitc-1
 ```
 
-ไฟล์ผลลัพธ์จะอยู่ที่
+Output files:
 
 ```
-PlatformIO/.pio/build/esp32dev/firmware.bin          <- แอปพลิเคชัน
-PlatformIO/.pio/build/esp32dev/firmware.factory.bin  <- ไฟล์เดียวจบ (merged)
+PlatformIO/.pio/build/<env>/firmware.bin          <- application
+PlatformIO/.pio/build/<env>/firmware.factory.bin  <- merged single file
 ```
 
 ---
