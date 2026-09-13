@@ -9,7 +9,7 @@ code PlatformIO
 The library lives in `lib/Massmore_BME280/`; PlatformIO picks it up automatically.
 No external dependencies (`lib_deps` is empty) — only `Wire` / `SPI` from the core.
 
-> 🇹🇭 เปิดโฟลเดอร์นี้ด้วย VS Code ไลบรารีอยู่ใน `lib/` แล้ว ไม่ต้องตั้งค่าเพิ่ม
+> เปิดโฟลเดอร์นี้ด้วย VS Code ไลบรารีอยู่ใน `lib/` แล้ว ไม่ต้องตั้งค่าเพิ่ม
 
 ## Using an example
 
@@ -44,7 +44,7 @@ cd test && make
 192 tests cover the compensation formulas, calibration decoding, register write order, timing formulas,
 the SPI bus (simulated chip), the non-blocking FSM and BME280/BMP280 discrimination.
 
-> 🇹🇭 ชุดทดสอบ 192 ข้อ รันบน PC ด้วย `make`
+> ชุดทดสอบ 192 ข้อ รันบน PC ด้วย `make`
 
 ## Which Arduino core?
 

@@ -7,7 +7,7 @@
 This folder holds the **Factory Test** (`examples/07_Factory_Test`) already compiled, so it can be flashed onto an
 ESP32 / ESP32-S3 without installing the Arduino IDE or PlatformIO.
 
-> 🇹🇭 เฟิร์มแวร์ชุดทดสอบโรงงานที่คอมไพล์ไว้แล้ว แฟลชลง ESP32 / ESP32-S3 ได้ทันทีโดยไม่ต้องลง IDE
+> เฟิร์มแวร์ชุดทดสอบโรงงานที่คอมไพล์ไว้แล้ว แฟลชลง ESP32 / ESP32-S3 ได้ทันทีโดยไม่ต้องลง IDE
 
 Use it to
 
@@ -90,7 +90,7 @@ Both scripts need `esptool`:
 pip3 install esptool
 ```
 
-> 🇹🇭 เสียบบอร์ด แล้วดับเบิลคลิก `flash_mac.command` (หรือรันสคริปต์ Linux) ต้องมี esptool ก่อน
+> เสียบบอร์ด แล้วดับเบิลคลิก `flash_mac.command` (หรือรันสคริปต์ Linux) ต้องมี esptool ก่อน
 
 ---
 
@@ -173,7 +173,7 @@ sha256sum -c SHA256SUMS.txt         # Linux
 3. Press **EN / RESET** on the ESP32 — the test starts automatically
 4. Type `r` + Enter to run again (handy when testing boards one after another)
 
-> 🇹🇭 ต่อเซ็นเซอร์ เปิด Serial Monitor 115200 กด RESET แล้วดูบรรทัดสุดท้าย พิมพ์ r เพื่อทดสอบซ้ำ
+> ต่อเซ็นเซอร์ เปิด Serial Monitor 115200 กด RESET แล้วดูบรรทัดสุดท้าย พิมพ์ r เพื่อทดสอบซ้ำ
 
 ---
 

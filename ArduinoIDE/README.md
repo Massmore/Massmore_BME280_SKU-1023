@@ -2,7 +2,7 @@
 
 The folder to install is **`Massmore_BME280/`** (the one containing `library.properties`), not this `ArduinoIDE` folder.
 
-> 🇹🇭 โฟลเดอร์ที่ต้องติดตั้งคือ `Massmore_BME280/` ไม่ใช่โฟลเดอร์ `ArduinoIDE` นี้
+> โฟลเดอร์ที่ต้องติดตั้งคือ `Massmore_BME280/` ไม่ใช่โฟลเดอร์ `ArduinoIDE` นี้
 
 ## Contents
 
@@ -21,7 +21,7 @@ The folder to install is **`Massmore_BME280/`** (the one containing `library.pro
 3. Open an example from **File → Examples → Massmore_BME280**
 
 > Do not unzip it yourself, and **do not select this `ArduinoIDE` folder** — it holds two projects and the IDE cannot tell which one is the library.
-> 🇹🇭 ไม่ต้องแตก ZIP เอง และห้ามเลือกโฟลเดอร์ ArduinoIDE ทั้งโฟลเดอร์
+> ไม่ต้องแตก ZIP เอง และห้ามเลือกโฟลเดอร์ ArduinoIDE ทั้งโฟลเดอร์
 
 ### Option 2 — copy the folder
 
@@ -62,7 +62,7 @@ chmod +x make_zip.sh
 
 The script strips junk files (`.DS_Store`, `*.o`, `*~`, dot-folders) that make the Arduino IDE complain on import.
 
-> 🇹🇭 แก้โค้ดแล้วรัน `make_zip.sh` เพื่อสร้าง ZIP ใหม่ สคริปต์ตัดไฟล์ขยะให้เอง
+> แก้โค้ดแล้วรัน `make_zip.sh` เพื่อสร้าง ZIP ใหม่ สคริปต์ตัดไฟล์ขยะให้เอง
 
 ## If the IDE rejects the ZIP
 

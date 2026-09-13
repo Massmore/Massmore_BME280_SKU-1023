@@ -52,7 +52,7 @@
 The **Massmore BME280 (SKU-1023)** is a breakout module for the Bosch BME280 environmental sensor with an on-board
 3.3 V regulator and level shifting. It accepts 3–5 V and supports both **I²C (Qwiic / STEMMA QT)** and **4-wire SPI**.
 
-> 🇹🇭 บอร์ด BME280 ของ Massmore มีเรกูเลเตอร์และ level shifter ในตัว รับไฟ 3–5 V ต่อได้ทั้ง I²C (Qwiic) และ SPI 4 สาย
+> บอร์ด BME280 ของ Massmore มีเรกูเลเตอร์และ level shifter ในตัว รับไฟ 3–5 V ต่อได้ทั้ง I²C (Qwiic) และ SPI 4 สาย
 
 | | Details |
 |---|---|
@@ -91,7 +91,7 @@ The **Massmore BME280 (SKU-1023)** is a breakout module for the Bosch BME280 env
 
 Summary of the [BST-BME280-DS002](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf) facts the driver is built on.
 
-> 🇹🇭 สรุปค่าจากดาต้าชีตที่ไลบรารีใช้อ้างอิง (ขั้น Step 0 ตามมาตรฐาน Massmore)
+> สรุปค่าจากดาต้าชีตที่ไลบรารีใช้อ้างอิง (ขั้น Step 0 ตามมาตรฐาน Massmore)
 
 | Item | Datasheet | Used in library |
 |---|---|---|
@@ -108,7 +108,7 @@ Summary of the [BST-BME280-DS002](https://www.bosch-sensortec.com/media/boschsen
 
 All 7 examples compile on the 4 environments in `PlatformIO/platformio.ini` with 0 errors and 0 warnings from library code.
 
-> 🇹🇭 ตัวอย่างทั้ง 7 ชุดคอมไพล์ผ่านทุก env; STM32 ผ่านตามหลักการแต่ยังไม่ได้ทดสอบบนบอร์ดจริง
+> ตัวอย่างทั้ง 7 ชุดคอมไพล์ผ่านทุก env; STM32 ผ่านตามหลักการแต่ยังไม่ได้ทดสอบบนบอร์ดจริง
 
 | MCU Platform | Tested Core / Toolchain | Bus Remapping Support | Limitations / Notes |
 |---|---|---|---|
@@ -126,7 +126,7 @@ All 7 examples compile on the 4 environments in `PlatformIO/platformio.ini` with
   <img src="Document/images/04_massmore_bme280_pinout_dimension.png" alt="pinout and dimensions" width="520">
 </p>
 
-| Pin | I²C function | SPI function | Notes (🇹🇭 หมายเหตุ) |
+| Pin | I²C function | SPI function | Notes (หมายเหตุ) |
 |---|---|---|---|
 | `VIN` | Power in **3–5 V DC** | Power in 3–5 V DC | Connect to `3V3` or `5V` of the MCU |
 | `3Vo` | 3.3 V regulator output | same | Optional; can power other modules |
@@ -143,7 +143,7 @@ All 7 examples compile on the 4 environments in `PlatformIO/platformio.ini` with
 
 > **Two sensors on one I²C bus?** Tie `SDO` of the second board to `GND` to move it to `0x76`, then chain it via the
 > second Qwiic connector and call `bme2.begin(MASSMORE_BME280_I2C_ADDR_A)`.
-> 🇹🇭 ต่อ SDO ของบอร์ดที่สองลง GND เพื่อย้ายไป 0x76
+> ต่อ SDO ของบอร์ดที่สองลง GND เพื่อย้ายไป 0x76
 
 ---
 
@@ -156,7 +156,7 @@ All 7 examples compile on the 4 environments in `PlatformIO/platformio.ini` with
 | Lazada | `// TODO: [MASSMORE_INPUT_REQUIRED: Lazada product link]` |
 
 Warranty included · Tax invoice available · Ships daily
-🇹🇭 สินค้ามีรับประกัน ออกใบกำกับภาษีได้ จัดส่งทุกวัน
+สินค้ามีรับประกัน ออกใบกำกับภาษีได้ จัดส่งทุกวัน
 
 ---
 
@@ -171,7 +171,7 @@ Warranty included · Tax invoice available · Ships daily
 
 No external dependencies (only `Wire` / `SPI` from the core). Board-package details per MCU: [`ArduinoIDE/README.md`](ArduinoIDE/README.md)
 
-> 🇹🇭 ติดตั้งผ่าน Add .ZIP Library แล้วเปิดตัวอย่างได้ทันที ไม่ต้องลงไลบรารีอื่นเพิ่ม
+> ติดตั้งผ่าน Add .ZIP Library แล้วเปิดตัวอย่างได้ทันที ไม่ต้องลงไลบรารีอื่นเพิ่ม
 
 ### VS Code + PlatformIO (plug-and-play)
 
@@ -212,14 +212,14 @@ void loop() {
 }
 ```
 
-**SPI** — only two lines change (🇹🇭 ใช้ SPI เปลี่ยนแค่สองบรรทัด)
+**SPI** — only two lines change (ใช้ SPI เปลี่ยนแค่สองบรรทัด)
 
 ```cpp
 SPI.begin();               // ESP32: SPI.begin(18, 19, 23, -1)
 bme.beginSPI(5, SPI);      // CS = GPIO5, 1 MHz (3rd argument raises it up to 10 MHz)
 ```
 
-**Non-blocking FSM** — no `delay()` in `loop()` (🇹🇭 ไม่บล็อก loop เลย)
+**Non-blocking FSM** — no `delay()` in `loop()` (ไม่บล็อก loop เลย)
 
 ```cpp
 void loop() {
@@ -240,7 +240,7 @@ void loop() {
 
 The library hardcodes no pins; every pin lives in the sketch (see `02_CustomPins_BusRemap` and `04_SPI_Advance`).
 
-> 🇹🇭 หมายเลขขาทั้งหมดอยู่ใน sketch เท่านั้น ไลบรารีไม่รู้จักขาใด ๆ
+> หมายเลขขาทั้งหมดอยู่ใน sketch เท่านั้น ไลบรารีไม่รู้จักขาใด ๆ
 
 ### ESP32 / ESP32-S3 (Arduino-ESP32 core v3.x) — any GPIO via the matrix
 
@@ -343,7 +343,7 @@ bme.begin(0x77, Wire);
 
 Every example shares one source for Arduino IDE (`.ino`) and PlatformIO (`main.cpp`) and compiles on ESP32-S3 / ESP32 / RP2040 / AVR.
 
-| # | Example | What you learn (🇹🇭 สิ่งที่ได้เรียนรู้) |
+| # | Example | What you learn (สิ่งที่ได้เรียนรู้) |
 |---|---|---|
 | 01 | **BasicRead** | All four values + dew point; `busBegin()` picks pins per MCU automatically (อ่านค่าพื้นฐาน เริ่มตรงนี้) |
 | 02 | **CustomPins_BusRemap** | Remap pins / use `Wire1` / RP2040 `setSDA` / STM32 remap; pass the bus by reference (ย้ายขาและใช้บัสที่สอง) |
@@ -362,7 +362,7 @@ massmore_bme280_identity_t id;
 massmore_bme280_genuine_t verdict = bme.verifyChip(&id);   // YES / SUSPECT / NO
 ```
 
-> 🇹🇭 ดูแค่ chip id ไม่พอ เพราะของปลอมคัดลอกตัวเลขได้ จึงทดสอบพฤติกรรมจริงของซิลิคอนอีก 9 ข้อ
+> ดูแค่ chip id ไม่พอ เพราะของปลอมคัดลอกตัวเลขได้ จึงทดสอบพฤติกรรมจริงของซิลิคอนอีก 9 ข้อ
 
 | # | Check | Why clones fail it |
 |---|---|---|
@@ -384,7 +384,7 @@ massmore_bme280_genuine_t verdict = bme.verifyChip(&id);   // YES / SUSPECT / NO
 
 `07_Factory_Test` runs automatically after boot; type `r` to repeat. Serial Monitor at **115200 baud**.
 
-> 🇹🇭 รันเองหลังบูต พิมพ์ r เพื่อทดสอบซ้ำ บรรทัดสุดท้ายบอกผล PASS/FAIL
+> รันเองหลังบูต พิมพ์ r เพื่อทดสอบซ้ำ บรรทัดสุดท้ายบอกผล PASS/FAIL
 
 ```
 GATE 1    Scan the I2C bus and confirm the address (0x77 / 0x76)
@@ -427,13 +427,13 @@ Covers: compensation formulas against datasheet example values (`adc_T = 519888 
 **SPI bus** (control byte, mode 0, 10 MHz clamp, no-chip case) · **FSM** (IDLE → MEASURING → READY → IDLE, timeout → ERROR) ·
 proof that the library **never** calls `Wire.begin()` / `SPI.begin()`
 
-> 🇹🇭 ชุดทดสอบ 192 ข้อรันบน PC ด้วย g++ ไม่ต้องมีบอร์ด
+> ชุดทดสอบ 192 ข้อรันบน PC ด้วย g++ ไม่ต้องมีบอร์ด
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Most likely cause | Fix (🇹🇭 วิธีแก้) |
+| Symptom | Most likely cause | Fix (วิธีแก้) |
 |---|---|---|
 | `begin()` fails · "no device" | `Wire.begin()` not called in the sketch (the library no longer does it) or SDI/SCK swapped | Call `Wire.begin(...)` first, then run `06_ChipID_Genuine` to scan the bus |
 | Scan finds `0x76` instead of `0x77` | `SDO` is tied to GND | `bme.begin(MASSMORE_BME280_I2C_ADDR_A)` or `beginAuto()` |
@@ -499,7 +499,7 @@ MIT License — see [LICENSE](LICENSE)
 
 Items that were **not guessed** and are marked in code/docs with `// TODO: [MASSMORE_INPUT_REQUIRED: ...]`.
 
-> 🇹🇭 รายการข้อมูลที่ยังขาดและไม่ได้เดา มาร์ก TODO ไว้ในโค้ดและเอกสาร
+> รายการข้อมูลที่ยังขาดและไม่ได้เดา มาร์ก TODO ไว้ในโค้ดและเอกสาร
 
 ### Missing Datasheet Registers / Silicon details
 

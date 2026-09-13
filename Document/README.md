@@ -2,7 +2,7 @@
 
 Reserved for documentation of the Massmore BME280 board (SKU-1023).
 
-> 🇹🇭 โฟลเดอร์นี้สงวนไว้สำหรับเอกสารประกอบบอร์ด (schematic, ภาพ, ดาต้าชีต)
+> โฟลเดอร์นี้สงวนไว้สำหรับเอกสารประกอบบอร์ด (schematic, ภาพ, ดาต้าชีต)
 
 | Folder / file | Contents |
 |---|---|

@@ -7,4 +7,4 @@ adds it to the include path automatically. In src/main.cpp simply use
 
 Put your own project headers (e.g. config.h) here.
 
-TH: โฟลเดอร์นี้สำหรับ header ของโปรเจกต์คุณเอง ไลบรารีอยู่ใน lib/ แล้ว ไม่ต้องคัดลอกมา
+โฟลเดอร์นี้สำหรับ header ของโปรเจกต์คุณเอง ไลบรารีอยู่ใน lib/ แล้ว ไม่ต้องคัดลอกมา
