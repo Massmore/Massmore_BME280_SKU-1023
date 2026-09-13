@@ -96,8 +96,9 @@ static int lastWriteIndex(uint8_t reg) {
 static void testConstants() {
   group("ค่าคงที่และแผนที่รีจิสเตอร์");
 
-  checkEqI(MASSMORE_BME280_I2C_ADDR_A, 0x76, "address ปริยายคือ 0x76");
-  checkEqI(MASSMORE_BME280_I2C_ADDR_B, 0x77, "address ทางเลือกคือ 0x77");
+  checkEqI(MASSMORE_BME280_I2C_ADDR_A, 0x76, "address A (SDO=GND) คือ 0x76");
+  checkEqI(MASSMORE_BME280_I2C_ADDR_B, 0x77, "address B (SDO=VDDIO) คือ 0x77");
+  checkEqI(MASSMORE_BME280_I2C_ADDR_DEFAULT, 0x77, "address ปริยายของบอร์ด SKU-1023 คือ 0x77");
   checkEqI(MASSMORE_BME280_REG_CHIP_ID, 0xD0, "รีจิสเตอร์ chip id อยู่ที่ 0xD0");
   checkEqI(MASSMORE_BME280_CHIP_ID_BME280, 0x60, "รหัส BME280 คือ 0x60");
   checkEqI(MASSMORE_BME280_CHIP_ID_BMP280, 0x58, "รหัส BMP280 คือ 0x58");
@@ -113,7 +114,7 @@ static void testConstants() {
   checkEqI(MASSMORE_BME280_CALIB_H_LEN, 7, "ค่าชดเชยชุด H ยาว 7 ไบต์");
   checkEqI(MASSMORE_BME280_STATUS_MEASURING, 0x08, "บิต measuring คือบิต 3");
   checkEqI(MASSMORE_BME280_STATUS_IM_UPDATE, 0x01, "บิต im_update คือบิต 0");
-  check(strcmp(MassmoreBME280::getLibraryVersion(), "1.0.0") == 0, "เวอร์ชันไลบรารี 1.0.0");
+  check(strcmp(MassmoreBME280::getLibraryVersion(), "1.1.0") == 0, "เวอร์ชันไลบรารี 1.1.0");
 }
 
 /* ------------------------------------------------------------------ */
@@ -125,7 +126,7 @@ static void testCalibration() {
 
   hostResetFakeBme280();
   MassmoreBME280 bme;
-  check(bme.begin(0x76, &Wire), "begin() สำเร็จกับชิปจำลอง");
+  check(bme.begin(), "begin() สำเร็จกับชิปจำลอง");
 
   massmore_bme280_calib_t c;
   bme.getCalibration(c);
@@ -153,7 +154,7 @@ static void testCompensation() {
 
   hostResetFakeBme280();
   MassmoreBME280 bme;
-  bme.begin(0x76, &Wire);
+  bme.begin();
 
   /* ดาต้าชีตหัวข้อ 4.2.3 ระบุว่า adc_T = 519888 กับค่าชดเชยชุดนี้
      ต้องได้ t_fine = 128422 และ T = 2508 (25.08 องศาเซลเซียส) */
@@ -193,7 +194,9 @@ static void testBeginPaths() {
   {
     hostResetFakeBme280();
     MassmoreBME280 bme;
-    check(bme.begin(0x76, &Wire), "เจอชิปที่ 0x76");
+    check(bme.begin(), "เจอชิปที่ 0x77 (ปริยาย) โดยไม่ต้องส่งพารามิเตอร์");
+    checkEqI(bme.getBus(), MASSMORE_BME280_BUS_I2C, "บัสที่ใช้คือ I2C");
+    checkEqI(Wire.beginCount, 0, "ไลบรารีไม่เรียก Wire.begin() เอง");
     checkEqI(bme.getChipID(), 0x60, "อ่าน chip id ได้ 0x60");
     check(bme.hasHumidity(), "รู้ว่าชิปมีเซ็นเซอร์ความชื้น");
     checkEqI(bme.lastError(), MASSMORE_BME280_OK, "ไม่มีข้อผิดพลาดค้าง");
@@ -202,35 +205,35 @@ static void testBeginPaths() {
   {
     hostResetFakeBme280();
     MassmoreBME280 bme;
-    check(!bme.begin(0x77, &Wire), "ไม่เจอชิปที่ 0x77 เมื่อบอร์ดตั้งไว้ 0x76");
+    check(!bme.begin(0x76, &Wire), "ไม่เจอชิปที่ 0x76 เมื่อบอร์ดตั้งไว้ 0x77");
     checkEqI(bme.lastError(), MASSMORE_BME280_ERR_NO_DEVICE, "รายงานว่าไม่มีอุปกรณ์");
   }
 
   {
     hostResetFakeBme280();
-    g_fakeBme.address = 0x77;
+    g_fakeBme.address = 0x76;
     MassmoreBME280 bme;
-    check(bme.beginAuto(&Wire), "beginAuto() ไล่หาเจอที่ 0x77");
-    checkEqI(bme.getAddress(), 0x77, "จำ address ที่เจอไว้ถูก");
+    check(bme.beginAuto(&Wire), "beginAuto() ไล่หาเจอที่ 0x76 (หลังลอง 0x77 ก่อน)");
+    checkEqI(bme.getAddress(), 0x76, "จำ address ที่เจอไว้ถูก");
   }
 
   {
     hostResetFakeBme280();
     MassmoreBME280 bme;
-    check(!bme.begin(0x50, &Wire), "ปฏิเสธ address ที่ไม่ใช่ 0x76 หรือ 0x77");
+    check(!bme.begin(0x50, Wire), "ปฏิเสธ address ที่ไม่ใช่ 0x76 หรือ 0x77");
     checkEqI(bme.lastError(), MASSMORE_BME280_ERR_BAD_ARG, "รายงานว่าพารามิเตอร์ผิด");
   }
 
   {
     hostRemoveFakeDevice();
     MassmoreBME280 bme;
-    check(!bme.begin(0x76, &Wire), "บัสว่างเปล่าแล้ว begin() ต้องไม่ผ่าน");
+    check(!bme.begin(), "บัสว่างเปล่าแล้ว begin() ต้องไม่ผ่าน");
   }
 
   {
     hostMakeFakeBmp280();
     MassmoreBME280 bme;
-    check(!bme.begin(0x76, &Wire), "เจอ BMP280 แล้ว begin() ต้องไม่ผ่าน");
+    check(!bme.begin(), "เจอ BMP280 แล้ว begin() ต้องไม่ผ่าน");
     checkEqI(bme.lastError(), MASSMORE_BME280_ERR_WRONG_CHIP, "รายงานว่าเป็นชิปผิดรุ่น");
     checkEqI(bme.getChipType(), MASSMORE_BME280_CHIP_BMP280, "ระบุรุ่นได้ว่าเป็น BMP280");
   }
@@ -254,7 +257,7 @@ static void testSettings() {
 
   hostResetFakeBme280();
   MassmoreBME280 bme;
-  bme.begin(0x76, &Wire);
+  bme.begin();
 
   g_fakeBme.writeLogLength = 0;
   check(bme.setSampling(MASSMORE_BME280_MODE_NORMAL, MASSMORE_BME280_SAMPLING_X2,
@@ -319,7 +322,7 @@ static void testMeasurementTime() {
 
   hostResetFakeBme280();
   MassmoreBME280 bme;
-  bme.begin(0x76, &Wire);
+  bme.begin();
 
   /* x1 ทั้งสามช่อง : 1 + 2 + 2.5 + 2.5 = 8 ms */
   bme.setSampling(MASSMORE_BME280_MODE_NORMAL, MASSMORE_BME280_SAMPLING_X1,
@@ -356,7 +359,7 @@ static void testForcedMode() {
 
   hostResetFakeBme280();
   MassmoreBME280 bme;
-  bme.begin(0x76, &Wire);
+  bme.begin();
   bme.setSampling(MASSMORE_BME280_MODE_FORCED, MASSMORE_BME280_SAMPLING_X1,
                   MASSMORE_BME280_SAMPLING_X1, MASSMORE_BME280_SAMPLING_X1,
                   MASSMORE_BME280_FILTER_OFF, MASSMORE_BME280_STANDBY_1000_MS);
@@ -401,7 +404,7 @@ static void testVerifyChip() {
   {
     hostResetFakeBme280();
     MassmoreBME280 bme;
-    bme.begin(0x76, &Wire);
+    bme.begin();
 
     massmore_bme280_identity_t id;
     massmore_bme280_genuine_t verdict = bme.verifyChip(&id);
@@ -429,7 +432,7 @@ static void testVerifyChip() {
     /* ชิปที่ค่าชดเชยความชื้นหายไป (BMP280 ที่ถูกสกรีนเป็น BME280) */
     hostResetFakeBme280();
     MassmoreBME280 bme;
-    bme.begin(0x76, &Wire);
+    bme.begin();
 
     g_fakeBme.regs[0xA1] = 0x00; /* ล้าง dig_H1 */
     g_fakeBme.adcH = 0x8000L;    /* ไม่มีช่องความชื้นจริง */
@@ -445,7 +448,7 @@ static void testVerifyChip() {
     /* BMP280 แท้ ๆ ที่รหัสชิปเป็น 0x58 */
     hostMakeFakeBmp280();
     MassmoreBME280 bme;
-    bme.begin(0x76, &Wire); /* จะไม่ผ่านอยู่แล้ว แต่ยังตรวจตัวตนได้ */
+    bme.begin(); /* จะไม่ผ่านอยู่แล้ว แต่ยังตรวจตัวตนได้ */
 
     massmore_bme280_identity_t id;
     massmore_bme280_genuine_t verdict = bme.verifyChip(&id);
@@ -457,7 +460,7 @@ static void testVerifyChip() {
     /* ค่าชดเชยเป็นตารางซ้ำ ๆ แบบที่ของปลอมชอบใช้ */
     hostResetFakeBme280();
     MassmoreBME280 bme;
-    bme.begin(0x76, &Wire);
+    bme.begin();
     for (uint8_t reg = 0x88; reg <= 0xA1; reg++) {
       g_fakeBme.regs[reg] = 0x55;
     }
@@ -541,7 +544,7 @@ static void testOffsets() {
 
   hostResetFakeBme280();
   MassmoreBME280 bme;
-  bme.begin(0x76, &Wire);
+  bme.begin();
 
   massmore_bme280_reading_t before;
   bme.read(before);
@@ -570,6 +573,148 @@ static void testOffsets() {
 }
 
 /* ------------------------------------------------------------------ */
+/* กลุ่ม 12 : บัส SPI                                                    */
+/* ------------------------------------------------------------------ */
+
+static void testSPI() {
+  group("บัส SPI 4 สาย");
+
+  {
+    hostResetFakeBme280();
+    MassmoreBME280 bme;
+    check(bme.beginSPI(10, SPI), "beginSPI(10, SPI) สำเร็จกับชิปจำลอง");
+    check(bme.isSPI(), "isSPI() เป็นจริง");
+    checkEqI(bme.getCSPin(), 10, "จำขา CS ไว้ถูก");
+    checkEqI(SPI.beginCount, 0, "ไลบรารีไม่เรียก SPI.begin() เอง");
+    checkEqI(hostGetPinState(10), HIGH, "หลังคุยเสร็จ CS ถูกปล่อยเป็น HIGH");
+    checkEqI(SPI.lastMode, SPI_MODE0, "ใช้ SPI mode 0");
+    checkEqI((long)SPI.lastClock, 1000000L, "ความถี่ปริยาย 1 MHz");
+    check(!SPI.inTransaction, "ปิด transaction ทุกครั้งหลังคุยเสร็จ");
+
+    massmore_bme280_calib_t c;
+    bme.getCalibration(c);
+    checkEqI(c.dig_T1, 27504, "อ่านค่าชดเชยผ่าน SPI ได้ถูกต้อง (dig_T1)");
+    checkEqI(c.dig_H4, 301, "อ่านค่าชดเชยผ่าน SPI ได้ถูกต้อง (dig_H4)");
+
+    g_fakeBme.writeLogLength = 0;
+    check(bme.setSampling(MASSMORE_BME280_MODE_NORMAL, MASSMORE_BME280_SAMPLING_X2,
+                          MASSMORE_BME280_SAMPLING_X16, MASSMORE_BME280_SAMPLING_X1,
+                          MASSMORE_BME280_FILTER_16, MASSMORE_BME280_STANDBY_0_5_MS),
+          "setSampling() ผ่าน SPI สำเร็จ");
+    check(firstWriteIndex(0xF5) < firstWriteIndex(0xF2) &&
+              firstWriteIndex(0xF2) < lastWriteIndex(0xF4),
+          "ลำดับเขียน config -> ctrl_hum -> ctrl_meas ผ่าน SPI ถูกต้อง");
+    checkEqI(g_fakeBme.regs[0xF5] & 0x01, 0, "บิต spi3w_en เป็น 0 (ใช้ 4 สาย)");
+
+    massmore_bme280_reading_t r;
+    check(bme.read(r), "อ่านค่าผ่าน SPI สำเร็จ");
+    checkNear(r.temperature, 25.08, 0.02, "อุณหภูมิผ่าน SPI ตรงดาต้าชีต 25.08 องศา");
+    checkNear(r.pressure, 1006.53, 0.05, "ความดันผ่าน SPI ตรงดาต้าชีต 1006.53 hPa");
+  }
+
+  {
+    hostResetFakeBme280();
+    MassmoreBME280 bme;
+    check(bme.beginSPI(10, SPI, 20000000UL), "ขอ 20 MHz แล้ว begin ได้");
+    checkEqI((long)SPI.lastClock, 10000000L, "ความถี่ถูกลดเหลือ 10 MHz ตามดาต้าชีต");
+  }
+
+  {
+    hostRemoveFakeDevice();
+    MassmoreBME280 bme;
+    check(!bme.beginSPI(10, SPI), "ไม่มีชิปบน SPI (MISO อ่านได้ 0xFF) begin ต้องไม่ผ่าน");
+    checkEqI(bme.lastError(), MASSMORE_BME280_ERR_NO_DEVICE, "รายงานว่าไม่มีอุปกรณ์");
+  }
+
+  {
+    hostResetFakeBme280();
+    MassmoreBME280 bme;
+    check(!bme.beginSPI(-1, SPI), "ขา CS = -1 ถูกปฏิเสธ");
+    checkEqI(bme.lastError(), MASSMORE_BME280_ERR_BAD_ARG, "รายงานว่าพารามิเตอร์ผิด");
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* กลุ่ม 13 : FSM ไม่บล็อกชื่อมาตรฐาน                                     */
+/* ------------------------------------------------------------------ */
+
+static void testFSM() {
+  group("FSM ไม่บล็อก requestConversion / update / isDataReady / getReadings");
+
+  {
+    hostResetFakeBme280();
+    MassmoreBME280 bme;
+    massmore_bme280_reading_t r;
+    check(!bme.requestConversion(), "requestConversion() ก่อน begin() ต้องไม่ผ่าน");
+    check(!bme.getReadings(r), "getReadings() ก่อนมีผลต้องไม่ผ่าน");
+    checkEqI(bme.getState(), MASSMORE_BME280_STATE_IDLE, "เริ่มต้นอยู่สถานะ IDLE");
+  }
+
+  {
+    hostResetFakeBme280();
+    MassmoreBME280 bme;
+    bme.begin();
+    bme.setSampling(MASSMORE_BME280_MODE_FORCED, MASSMORE_BME280_SAMPLING_X16,
+                    MASSMORE_BME280_SAMPLING_X16, MASSMORE_BME280_SAMPLING_X16,
+                    MASSMORE_BME280_FILTER_OFF, MASSMORE_BME280_STANDBY_1000_MS);
+
+    check(bme.requestConversion(), "requestConversion() ในโหมด forced สำเร็จ");
+    checkEqI(bme.getState(), MASSMORE_BME280_STATE_MEASURING, "เข้าสถานะ MEASURING");
+    check(!bme.requestConversion(), "สั่งซ้ำระหว่างวัดถูกปฏิเสธ");
+    checkEqI(bme.lastError(), MASSMORE_BME280_ERR_NOT_READY, "รายงานว่ายังไม่พร้อม");
+
+    massmore_bme280_reading_t r;
+    check(!bme.read(r), "read() แบบบล็อกระหว่าง FSM วัดอยู่ถูกปฏิเสธ");
+
+    bme.update();
+    check(!bme.isDataReady(), "ทันทีหลังสั่ง ยังไม่พร้อม");
+    hostAdvanceMillis(5);
+    bme.update();
+    check(!bme.isDataReady(), "ผ่านไป 5 ms ยังไม่พร้อม (x16 ใช้ 113 ms)");
+    hostAdvanceMillis(200);
+    bme.update();
+    check(bme.isDataReady(), "ผ่านไปเกินเวลาวัดแล้ว isDataReady() เป็นจริง");
+    checkEqI(bme.getState(), MASSMORE_BME280_STATE_READY, "สถานะ READY");
+
+    check(bme.getReadings(r), "getReadings() คืนผล");
+    check(r.valid, "ผลถูกทำเครื่องหมายว่าใช้ได้");
+    checkNear(r.temperature, 25.08, 0.02, "อุณหภูมิจาก FSM ตรงดาต้าชีต");
+    checkEqI(bme.getState(), MASSMORE_BME280_STATE_IDLE, "รับผลแล้วกลับสู่ IDLE");
+    check(!bme.isDataReady(), "รับผลแล้ว isDataReady() กลับเป็นเท็จ");
+  }
+
+  {
+    /* โหมด normal : ชิปวัดอยู่แล้ว update() ครั้งเดียวได้ผลทันที */
+    hostResetFakeBme280();
+    MassmoreBME280 bme;
+    bme.begin();
+    check(bme.requestConversion(), "requestConversion() ในโหมด normal สำเร็จ");
+    bme.update();
+    check(bme.isDataReady(), "โหมด normal พร้อมทันทีหลัง update()");
+    massmore_bme280_reading_t r;
+    check(bme.getReadings(r) && r.valid, "getReadings() ในโหมด normal ได้ผลใช้ได้");
+  }
+
+  {
+    /* timeout : ถอดชิปออกระหว่างวัด */
+    hostResetFakeBme280();
+    MassmoreBME280 bme;
+    bme.begin();
+    bme.setSampling(MASSMORE_BME280_MODE_FORCED);
+    bme.requestConversion();
+    g_fakeBme.present = false;
+    hostAdvanceMillis(1000);
+    bme.update();
+    checkEqI(bme.getState(), MASSMORE_BME280_STATE_ERROR, "ถอดชิประหว่างวัด -> สถานะ ERROR");
+    check(bme.lastError() == MASSMORE_BME280_ERR_TIMEOUT ||
+              bme.lastError() == MASSMORE_BME280_ERR_I2C_WRITE,
+          "รายงาน timeout หรือบัสล้มเหลว");
+    g_fakeBme.present = true;
+    check(bme.requestConversion(), "หลัง ERROR สั่งวัดใหม่ได้");
+  }
+}
+
+/* ------------------------------------------------------------------ */
 
 int main(void) {
   printf("==========================================================\n");
@@ -588,6 +733,8 @@ int main(void) {
   testDerived();
   testStrings();
   testOffsets();
+  testSPI();
+  testFSM();
 
   printf("\n==========================================================\n");
   printf("  ผ่าน %d ข้อ   ไม่ผ่าน %d ข้อ   รวม %d ข้อ\n", g_pass, g_fail, g_pass + g_fail);

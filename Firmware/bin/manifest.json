@@ -1,0 +1,102 @@
+{
+  "name": "Massmore BME280 Factory Test",
+  "version": "1.1.0",
+  "sku": "SKU-1023",
+  "product": "Massmore BME280 Environment Sensor (Temperature / Humidity / Pressure)",
+  "product_url": "https://www.massmore.shop/products/bf997665-da75-4b6f-9a98-100a5dc4030f",
+  "library": "Massmore_BME280 1.1.0",
+  "sketch": "examples/07_Factory_Test",
+  "built_with": {
+    "platform": "pioarduino platform-espressif32 55.03.311",
+    "arduino_core": "3.3.11",
+    "framework": "arduino"
+  },
+  "monitor_speed": 115200,
+  "upload_speed": 512000,
+  "sensor": {
+    "chip": "Bosch BME280",
+    "chip_id": "0x60",
+    "i2c_addresses": [
+      "0x77 (default)",
+      "0x76"
+    ]
+  },
+  "expected_last_line": "[PASS] SENSOR QA PASSED - READY TO SHIP",
+  "builds": [
+    {
+      "board": "esp32dev",
+      "chip_family": "ESP32",
+      "flash_size": "4MB",
+      "pins": {
+        "sda": 21,
+        "scl": 22,
+        "note": "ขาปริยายของ variant esp32dev - ไลบรารีไม่ hardcode ขา"
+      },
+      "merged": {
+        "path": "Massmore_BME280_FactoryTest_v1.1.0_esp32dev_merged.bin",
+        "offset": "0x0"
+      },
+      "parts": [
+        {
+          "path": "parts/esp32dev/bootloader.bin",
+          "offset": "0x1000"
+        },
+        {
+          "path": "parts/esp32dev/partitions.bin",
+          "offset": "0x8000"
+        },
+        {
+          "path": "parts/esp32dev/boot_app0.bin",
+          "offset": "0xe000"
+        },
+        {
+          "path": "Massmore_BME280_FactoryTest_v1.1.0_esp32dev.bin",
+          "offset": "0x10000"
+        }
+      ]
+    },
+    {
+      "board": "esp32-s3-devkitc-1",
+      "chip_family": "ESP32-S3",
+      "flash_size": "8MB",
+      "usb_cdc_on_boot": true,
+      "pins": {
+        "sda": 8,
+        "scl": 9,
+        "note": "ขาปริยายของ variant esp32-s3-devkitc-1"
+      },
+      "merged": {
+        "path": "Massmore_BME280_FactoryTest_v1.1.0_esp32-s3-devkitc-1_merged.bin",
+        "offset": "0x0"
+      },
+      "parts": [
+        {
+          "path": "parts/esp32-s3-devkitc-1/bootloader.bin",
+          "offset": "0x0"
+        },
+        {
+          "path": "parts/esp32-s3-devkitc-1/partitions.bin",
+          "offset": "0x8000"
+        },
+        {
+          "path": "parts/esp32-s3-devkitc-1/boot_app0.bin",
+          "offset": "0xe000"
+        },
+        {
+          "path": "Massmore_BME280_FactoryTest_v1.1.0_esp32-s3-devkitc-1.bin",
+          "offset": "0x10000"
+        }
+      ]
+    }
+  ],
+  "legacy": [
+    {
+      "version": "1.0.0",
+      "board": "esp32dev",
+      "merged": "Massmore_BME280_FactoryTest_v1.0.0_esp32dev_merged.bin",
+      "app": "Massmore_BME280_FactoryTest_v1.0.0_esp32dev.bin",
+      "note": "บิลด์จากไลบรารี 1.0.0 (address ปริยาย 0x76 แต่สแกนหาทั้งคู่) เก็บไว้อ้างอิง"
+    }
+  ],
+  "hardware_verification": "// TODO: [MASSMORE_INPUT_REQUIRED: v1.1.0 hardware test result on ESP32-S3 / ESP32 / Arduino Nano]"
+}

@@ -1,8 +1,8 @@
 {
   "name": "Massmore_BME280",
-  "version": "1.0.0",
-  "description": "ไลบรารีสำหรับเซ็นเซอร์สภาพแวดล้อม Bosch BME280 (อุณหภูมิ ความชื้น ความดัน ความสูง) เขียนจากดาต้าชีตโดยตรง รองรับ oversampling, IIR filter, forced/normal mode, อ่านค่าดิบและค่าชดเชย พร้อมการตรวจชิปแท้ 10 ข้อ",
-  "keywords": ["sensor", "temperature", "humidity", "pressure", "altitude", "bme280", "bmp280", "bosch", "i2c", "qwiic", "massmore"],
+  "version": "1.1.0",
+  "description": "ไลบรารีสำหรับเซ็นเซอร์สภาพแวดล้อม Bosch BME280 (อุณหภูมิ ความชื้น ความดัน ความสูง) เขียนจากดาต้าชีตโดยตรง รองรับ I2C และ SPI ไม่ init บัสเอง ใช้ได้กับ ESP32/ESP32-S3/RP2040/STM32/AVR รองรับ oversampling, IIR filter, forced/normal mode, FSM ไม่บล็อก อ่านค่าดิบและค่าชดเชย พร้อมการตรวจชิปแท้ 10 ข้อ",
+  "keywords": ["sensor", "temperature", "humidity", "pressure", "altitude", "bme280", "bmp280", "bosch", "i2c", "spi", "qwiic", "massmore"],
   "authors": [
     {
       "name": "Massmore",

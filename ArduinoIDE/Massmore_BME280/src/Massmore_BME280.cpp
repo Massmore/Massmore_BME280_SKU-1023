@@ -19,8 +19,12 @@
 /* ========================================================================= */
 
 MassmoreBME280::MassmoreBME280()
-    : _wire(NULL),
-      _address(MASSMORE_BME280_I2C_ADDR_A),
+    : _bus(MASSMORE_BME280_BUS_NONE),
+      _wire(NULL),
+      _address(MASSMORE_BME280_I2C_ADDR_DEFAULT),
+      _spi(NULL),
+      _cs(-1),
+      _spiHz(MASSMORE_BME280_SPI_DEFAULT_HZ),
       _begun(false),
       _hasHumidity(false),
       _chipId(0),
@@ -37,7 +41,14 @@ MassmoreBME280::MassmoreBME280()
       _seaLevelhPa(MASSMORE_BME280_SEALEVEL_HPA_DEFAULT),
       _forcedStartMs(0),
       _forcedPending(false),
+      _state(MASSMORE_BME280_STATE_IDLE),
       _lastError(MASSMORE_BME280_OK) {
+  _lastReading.temperature = NAN;
+  _lastReading.pressure = NAN;
+  _lastReading.humidity = NAN;
+  _lastReading.altitude = NAN;
+  _lastReading.timestamp = 0;
+  _lastReading.valid = false;
   /* ล้างค่าชดเชยให้เป็นศูนย์ทั้งหมด กัน static analyzer บ่นเรื่องค่าไม่ถูกกำหนด */
   _calib.dig_T1 = 0;
   _calib.dig_T2 = 0;
@@ -64,6 +75,34 @@ MassmoreBME280::MassmoreBME280()
 /* ========================================================================= */
 
 bool MassmoreBME280::writeReg(uint8_t reg, uint8_t value) {
+  switch (_bus) {
+    case MASSMORE_BME280_BUS_I2C:
+      return writeRegI2C(reg, value);
+    case MASSMORE_BME280_BUS_SPI:
+      return writeRegSPI(reg, value);
+    case MASSMORE_BME280_BUS_NONE:
+    default:
+      _lastError = MASSMORE_BME280_ERR_NOT_BEGUN;
+      return false;
+  }
+}
+
+bool MassmoreBME280::readRegs(uint8_t reg, uint8_t *buffer, uint8_t length) {
+  switch (_bus) {
+    case MASSMORE_BME280_BUS_I2C:
+      return readRegsI2C(reg, buffer, length);
+    case MASSMORE_BME280_BUS_SPI:
+      return readRegsSPI(reg, buffer, length);
+    case MASSMORE_BME280_BUS_NONE:
+    default:
+      _lastError = MASSMORE_BME280_ERR_NOT_BEGUN;
+      return false;
+  }
+}
+
+/* --- I2C --- */
+
+bool MassmoreBME280::writeRegI2C(uint8_t reg, uint8_t value) {
   if (_wire == NULL) {
     _lastError = MASSMORE_BME280_ERR_NOT_BEGUN;
     return false;
@@ -78,7 +117,7 @@ bool MassmoreBME280::writeReg(uint8_t reg, uint8_t value) {
   return true;
 }
 
-bool MassmoreBME280::readRegs(uint8_t reg, uint8_t *buffer, uint8_t length) {
+bool MassmoreBME280::readRegsI2C(uint8_t reg, uint8_t *buffer, uint8_t length) {
   if (_wire == NULL) {
     _lastError = MASSMORE_BME280_ERR_NOT_BEGUN;
     return false;
@@ -99,6 +138,42 @@ bool MassmoreBME280::readRegs(uint8_t reg, uint8_t *buffer, uint8_t length) {
   for (uint8_t i = 0; i < length; i++) {
     buffer[i] = (uint8_t)_wire->read();
   }
+  return true;
+}
+
+/* --- SPI 4 สาย ---
+   ดาต้าชีตหัวข้อ 6.3 : ไบต์แรกคือ control byte (บิต 7 = R/W, บิต 6:0 = address)
+   ตามด้วยข้อมูล ชิปเพิ่ม address ให้เองเมื่ออ่านหลายไบต์ติดกัน
+   ครอบด้วย beginTransaction / endTransaction ทุกครั้ง เพื่อแชร์บัสกับอุปกรณ์อื่นได้
+   SPI ไม่มี ACK จึงตรวจการมีตัวตนของชิปจาก chip id แทน (ดู isConnected) */
+
+bool MassmoreBME280::writeRegSPI(uint8_t reg, uint8_t value) {
+  if (_spi == NULL || _cs < 0) {
+    _lastError = MASSMORE_BME280_ERR_NOT_BEGUN;
+    return false;
+  }
+  _spi->beginTransaction(SPISettings(_spiHz, MSBFIRST, SPI_MODE0));
+  digitalWrite((uint8_t)_cs, LOW);
+  _spi->transfer((uint8_t)(reg & MASSMORE_BME280_SPI_WRITE_MASK));
+  _spi->transfer(value);
+  digitalWrite((uint8_t)_cs, HIGH);
+  _spi->endTransaction();
+  return true;
+}
+
+bool MassmoreBME280::readRegsSPI(uint8_t reg, uint8_t *buffer, uint8_t length) {
+  if (_spi == NULL || _cs < 0) {
+    _lastError = MASSMORE_BME280_ERR_NOT_BEGUN;
+    return false;
+  }
+  _spi->beginTransaction(SPISettings(_spiHz, MSBFIRST, SPI_MODE0));
+  digitalWrite((uint8_t)_cs, LOW);
+  _spi->transfer((uint8_t)(reg | MASSMORE_BME280_SPI_READ_BIT));
+  for (uint8_t i = 0; i < length; i++) {
+    buffer[i] = _spi->transfer(0x00);
+  }
+  digitalWrite((uint8_t)_cs, HIGH);
+  _spi->endTransaction();
   return true;
 }
 
@@ -124,25 +199,67 @@ int16_t MassmoreBME280::readS16LE(const uint8_t *buffer, uint8_t offset) {
 /* ========================================================================= */
 
 bool MassmoreBME280::begin(uint8_t address, TwoWire *wire) {
+  if (wire == NULL) {
+    _lastError = MASSMORE_BME280_ERR_BAD_ARG;
+    return false;
+  }
+  return begin(address, *wire);
+}
+
+bool MassmoreBME280::begin(uint8_t address, TwoWire &wirePort) {
   if (address != MASSMORE_BME280_I2C_ADDR_A && address != MASSMORE_BME280_I2C_ADDR_B) {
     _lastError = MASSMORE_BME280_ERR_BAD_ARG;
     return false;
   }
-  _wire = wire;
+  _bus = MASSMORE_BME280_BUS_I2C;
+  _wire = &wirePort;
   _address = address;
+  _spi = NULL;
+  _cs = -1;
   _begun = false;
+  _state = MASSMORE_BME280_STATE_IDLE;
 
-  /* ถ้าผู้ใช้ยังไม่ได้เรียก Wire.begin() เอง ให้เรียกด้วยขาปริยายของบอร์ดให้
-     (ESP32 ปริยายคือ SDA 21 / SCL 22 ซึ่งตรงกับหัว Qwiic ของบอร์ด Massmore) */
+  /* ไลบรารีไม่เรียก Wire.begin() เอง ถ้าไม่มีอุปกรณ์ตอบให้จบทันที
+     ผู้ใช้ต้องตรวจว่าเรียก Wire.begin(SDA, SCL) ก่อนแล้วและต่อสายถูก */
   if (!isConnected()) {
-    _wire->begin();
-    delay(10);
-    if (!isConnected()) {
-      _lastError = MASSMORE_BME280_ERR_NO_DEVICE;
-      return false;
-    }
+    _lastError = MASSMORE_BME280_ERR_NO_DEVICE;
+    return false;
   }
+  return beginCommon();
+}
 
+bool MassmoreBME280::beginSPI(int8_t csPin, SPIClass &spiPort, uint32_t spiHz) {
+  if (csPin < 0) {
+    _lastError = MASSMORE_BME280_ERR_BAD_ARG;
+    return false;
+  }
+  _bus = MASSMORE_BME280_BUS_SPI;
+  _spi = &spiPort;
+  _cs = csPin;
+  _spiHz = (spiHz == 0 || spiHz > MASSMORE_BME280_SPI_MAX_HZ) ? MASSMORE_BME280_SPI_MAX_HZ
+                                                              : spiHz;
+  _wire = NULL;
+  _begun = false;
+  _state = MASSMORE_BME280_STATE_IDLE;
+
+  /* ไลบรารีไม่เรียก SPI.begin() เอง แต่ขา CS เป็นของเซ็นเซอร์ตัวนี้โดยเฉพาะ
+     จึงตั้งเป็น OUTPUT / HIGH (ไม่เลือก) ให้ก่อนคุยครั้งแรก */
+  pinMode((uint8_t)_cs, OUTPUT);
+  digitalWrite((uint8_t)_cs, HIGH);
+  delay(MASSMORE_BME280_STARTUP_MS);
+
+  /* ดาต้าชีต : การอ่านครั้งแรกผ่าน SPI หลังจ่ายไฟอาจได้ค่าค้าง อ่าน chip id ทิ้งหนึ่งครั้ง */
+  uint8_t dummy = 0;
+  readReg8(MASSMORE_BME280_REG_CHIP_ID, dummy);
+
+  if (!isConnected()) {
+    _lastError = MASSMORE_BME280_ERR_NO_DEVICE;
+    return false;
+  }
+  return beginCommon();
+}
+
+bool MassmoreBME280::beginCommon() {
   if (!readReg8(MASSMORE_BME280_REG_CHIP_ID, _chipId)) {
     _lastError = MASSMORE_BME280_ERR_NO_DEVICE;
     return false;
@@ -196,18 +313,29 @@ bool MassmoreBME280::begin(uint8_t address, TwoWire *wire) {
 }
 
 bool MassmoreBME280::beginAuto(TwoWire *wire) {
-  if (begin(MASSMORE_BME280_I2C_ADDR_A, wire)) {
+  if (begin(MASSMORE_BME280_I2C_ADDR_DEFAULT, wire)) {
     return true;
   }
-  return begin(MASSMORE_BME280_I2C_ADDR_B, wire);
+  return begin(MASSMORE_BME280_I2C_ADDR_A, wire);
 }
 
 bool MassmoreBME280::isConnected() {
-  if (_wire == NULL) {
-    return false;
+  if (_bus == MASSMORE_BME280_BUS_I2C) {
+    if (_wire == NULL) {
+      return false;
+    }
+    _wire->beginTransmission(_address);
+    return (_wire->endTransmission() == 0);
   }
-  _wire->beginTransmission(_address);
-  return (_wire->endTransmission() == 0);
+  if (_bus == MASSMORE_BME280_BUS_SPI) {
+    /* SPI ไม่มี ACK : สายว่างจะอ่านได้ 0x00 (MISO ลง GND) หรือ 0xFF (MISO ลอย/pull-up) */
+    uint8_t id = 0;
+    if (!readReg8(MASSMORE_BME280_REG_CHIP_ID, id)) {
+      return false;
+    }
+    return (id != 0x00 && id != 0xFF);
+  }
+  return false;
 }
 
 bool MassmoreBME280::readCalibration() {
@@ -372,6 +500,12 @@ bool MassmoreBME280::read(massmore_bme280_reading_t &out) {
     return false;
   }
 
+  /* ถ้า FSM ไม่บล็อกกำลังวัดค้างอยู่ ห้ามแทรกสั่งวัดซ้อน */
+  if (_state == MASSMORE_BME280_STATE_MEASURING) {
+    _lastError = MASSMORE_BME280_ERR_NOT_READY;
+    return false;
+  }
+
   /* ในโหมด forced ชิปหลับอยู่ ต้องสะกิดให้วัดก่อนหนึ่งครั้ง */
   if (_mode == MASSMORE_BME280_MODE_FORCED) {
     if (!takeForcedMeasurement()) {
@@ -379,6 +513,10 @@ bool MassmoreBME280::read(massmore_bme280_reading_t &out) {
     }
   }
 
+  return computeReading(out);
+}
+
+bool MassmoreBME280::computeReading(massmore_bme280_reading_t &out) {
   massmore_bme280_raw_t raw;
   if (!readRawADC(raw)) {
     return false;
@@ -414,6 +552,71 @@ bool MassmoreBME280::read(massmore_bme280_reading_t &out) {
   out.valid = true;
   _lastError = MASSMORE_BME280_OK;
   return true;
+}
+
+/* ========================================================================= */
+/* FSM ไม่บล็อก                                                              */
+/* ========================================================================= */
+
+bool MassmoreBME280::requestConversion() {
+  if (!_begun) {
+    _lastError = MASSMORE_BME280_ERR_NOT_BEGUN;
+    return false;
+  }
+  if (_state == MASSMORE_BME280_STATE_MEASURING) {
+    _lastError = MASSMORE_BME280_ERR_NOT_READY;
+    return false;
+  }
+  if (_mode == MASSMORE_BME280_MODE_FORCED) {
+    if (!startForcedMeasurement()) {
+      _state = MASSMORE_BME280_STATE_ERROR;
+      return false;
+    }
+  } else {
+    /* normal mode : ชิปวัดวนอยู่แล้ว update() ครั้งถัดไปหยิบค่าล่าสุดได้เลย
+       sleep mode : ไม่มีการวัด update() จะได้ค่าค้างเดิมของชิป (ผู้ใช้ควรตั้ง forced) */
+    _forcedStartMs = millis();
+    _forcedPending = false;
+  }
+  _state = MASSMORE_BME280_STATE_MEASURING;
+  _lastError = MASSMORE_BME280_OK;
+  return true;
+}
+
+void MassmoreBME280::update() {
+  if (_state != MASSMORE_BME280_STATE_MEASURING) {
+    return;
+  }
+
+  if (_forcedPending) {
+    /* unsigned subtraction ปลอดภัยต่อ millis() วนกลับที่ 49.7 วัน */
+    uint32_t elapsed = millis() - _forcedStartMs;
+    if (elapsed > (uint32_t)measurementTimeMaxMs() + MASSMORE_BME280_TIMEOUT_DEFAULT_MS) {
+      _forcedPending = false;
+      _lastError = MASSMORE_BME280_ERR_TIMEOUT;
+      _state = MASSMORE_BME280_STATE_ERROR;
+      return;
+    }
+    if (!isMeasurementReady()) {
+      return;
+    }
+  }
+
+  if (computeReading(_lastReading)) {
+    _state = MASSMORE_BME280_STATE_READY;
+  } else {
+    _state = MASSMORE_BME280_STATE_ERROR;
+  }
+}
+
+bool MassmoreBME280::getReadings(massmore_bme280_reading_t &out) {
+  out = _lastReading;
+  if (_state != MASSMORE_BME280_STATE_READY) {
+    _lastError = MASSMORE_BME280_ERR_NOT_READY;
+    return false;
+  }
+  _state = MASSMORE_BME280_STATE_IDLE;
+  return _lastReading.valid;
 }
 
 float MassmoreBME280::readTemperature() {
@@ -1015,34 +1218,42 @@ float MassmoreBME280::absoluteHumidity(float temperatureC, float humidityRH) {
 /* ข้อความ                                                                   */
 /* ========================================================================= */
 
+/* บน AVR (ATmega328P มี SRAM 2 KB) สตริงไทย UTF-8 ใช้ 3 ไบต์ต่อตัวอักษรและถูกคัดลอก
+   ลง SRAM ตอนบูต จึงใช้ ASCII สั้น ๆ แทน บอร์ดอื่นได้ข้อความไทยเต็ม */
+#if defined(__AVR__)
+#define MASSMORE_BME280_STR(thai, ascii) ascii
+#else
+#define MASSMORE_BME280_STR(thai, ascii) thai
+#endif
+
 const char *MassmoreBME280::errorToString(massmore_bme280_error_t error) {
   switch (error) {
     case MASSMORE_BME280_OK:
-      return "สำเร็จ";
+      return MASSMORE_BME280_STR("สำเร็จ", "OK");
     case MASSMORE_BME280_ERR_NOT_BEGUN:
-      return "ยังไม่ได้เรียก begin()";
+      return MASSMORE_BME280_STR("ยังไม่ได้เรียก begin()", "begin() not called");
     case MASSMORE_BME280_ERR_NO_DEVICE:
-      return "ไม่มีอุปกรณ์ตอบที่ address นี้ ตรวจสาย VCC GND SDA SCL";
+      return MASSMORE_BME280_STR("ไม่มีอุปกรณ์ตอบที่ address นี้ ตรวจสาย VCC GND SDA SCL", "no device (check wiring)");
     case MASSMORE_BME280_ERR_I2C_WRITE:
-      return "เขียนลงบัส I2C ไม่สำเร็จ";
+      return MASSMORE_BME280_STR("เขียนลงบัส (I2C/SPI) ไม่สำเร็จ", "bus write failed");
     case MASSMORE_BME280_ERR_I2C_READ:
-      return "อ่านจากบัส I2C ได้ไบต์ไม่ครบ";
+      return MASSMORE_BME280_STR("อ่านจากบัส (I2C/SPI) ได้ไบต์ไม่ครบ", "bus read short");
     case MASSMORE_BME280_ERR_WRONG_CHIP:
-      return "รหัสชิปไม่ใช่ 0x60 อาจเป็น BMP280 หรือของเลียนแบบ";
+      return MASSMORE_BME280_STR("รหัสชิปไม่ใช่ 0x60 อาจเป็น BMP280 หรือของเลียนแบบ", "wrong chip id (BMP280?)");
     case MASSMORE_BME280_ERR_TIMEOUT:
-      return "รอผลวัดเกินเวลาที่กำหนด";
+      return MASSMORE_BME280_STR("รอผลวัดเกินเวลาที่กำหนด", "timeout");
     case MASSMORE_BME280_ERR_NOT_READY:
-      return "ยังวัดไม่เสร็จ";
+      return MASSMORE_BME280_STR("ยังวัดไม่เสร็จ", "not ready");
     case MASSMORE_BME280_ERR_WRONG_MODE:
-      return "โหมดหรือค่า oversampling ไม่เหมาะกับสิ่งที่สั่ง";
+      return MASSMORE_BME280_STR("โหมดหรือค่า oversampling ไม่เหมาะกับสิ่งที่สั่ง", "wrong mode");
     case MASSMORE_BME280_ERR_BAD_ARG:
-      return "พารามิเตอร์ไม่ถูกต้อง";
+      return MASSMORE_BME280_STR("พารามิเตอร์ไม่ถูกต้อง", "bad argument");
     case MASSMORE_BME280_ERR_CALIB:
-      return "ค่าชดเชยจากโรงงานผิดปกติ";
+      return MASSMORE_BME280_STR("ค่าชดเชยจากโรงงานผิดปกติ", "bad calibration");
     case MASSMORE_BME280_ERR_NO_HUMIDITY:
-      return "ชิปตัวนี้ไม่มีเซ็นเซอร์ความชื้น (BMP280)";
+      return MASSMORE_BME280_STR("ชิปตัวนี้ไม่มีเซ็นเซอร์ความชื้น (BMP280)", "no humidity sensor");
     default:
-      return "ข้อผิดพลาดที่ไม่รู้จัก";
+      return MASSMORE_BME280_STR("ข้อผิดพลาดที่ไม่รู้จัก", "unknown error");
   }
 }
 
@@ -1055,31 +1266,31 @@ const char *MassmoreBME280::chipToString(massmore_bme280_chip_t chip) {
     case MASSMORE_BME280_CHIP_BME680:
       return "BME680";
     case MASSMORE_BME280_CHIP_NO_RESPONSE:
-      return "ไม่มีการตอบสนอง";
+      return MASSMORE_BME280_STR("ไม่มีการตอบสนอง", "no response");
     case MASSMORE_BME280_CHIP_UNKNOWN:
     default:
-      return "ไม่รู้จัก";
+      return MASSMORE_BME280_STR("ไม่รู้จัก", "unknown");
   }
 }
 
 const char *MassmoreBME280::genuineToString(massmore_bme280_genuine_t genuine) {
   switch (genuine) {
     case MASSMORE_BME280_GENUINE_YES:
-      return "ของแท้";
+      return MASSMORE_BME280_STR("ของแท้", "GENUINE");
     case MASSMORE_BME280_GENUINE_SUSPECT:
-      return "น่าสงสัย";
+      return MASSMORE_BME280_STR("น่าสงสัย", "SUSPECT");
     case MASSMORE_BME280_GENUINE_NO:
-      return "ไม่ผ่าน";
+      return MASSMORE_BME280_STR("ไม่ผ่าน", "FAIL");
     case MASSMORE_BME280_GENUINE_UNKNOWN:
     default:
-      return "ยังไม่ได้ตรวจ";
+      return MASSMORE_BME280_STR("ยังไม่ได้ตรวจ", "not checked");
   }
 }
 
 const char *MassmoreBME280::samplingToString(massmore_bme280_sampling_t sampling) {
   switch (sampling) {
     case MASSMORE_BME280_SAMPLING_NONE:
-      return "ปิด";
+      return MASSMORE_BME280_STR("ปิด", "off");
     case MASSMORE_BME280_SAMPLING_X1:
       return "x1";
     case MASSMORE_BME280_SAMPLING_X2:
@@ -1097,7 +1308,7 @@ const char *MassmoreBME280::samplingToString(massmore_bme280_sampling_t sampling
 const char *MassmoreBME280::filterToString(massmore_bme280_filter_t filter) {
   switch (filter) {
     case MASSMORE_BME280_FILTER_OFF:
-      return "ปิด";
+      return MASSMORE_BME280_STR("ปิด", "off");
     case MASSMORE_BME280_FILTER_2:
       return "2";
     case MASSMORE_BME280_FILTER_4:

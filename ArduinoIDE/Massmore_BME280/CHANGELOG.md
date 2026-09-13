@@ -2,6 +2,36 @@
 
 รูปแบบเวอร์ชันตาม [Semantic Versioning](https://semver.org/lang/th/)
 
+## [1.1.0] - 2026-09-13
+
+ปรับให้ตรงตาม Massmore Library Standard
+
+### เพิ่ม
+
+- รองรับบัส **SPI 4 สาย** ผ่าน `beginSPI(csPin, SPIClass&, spiHz)` (mode 0, สูงสุด 10 MHz)
+- FSM ไม่บล็อกชื่อมาตรฐาน `requestConversion()` / `update()` / `isDataReady()` /
+  `getReadings()` / `getState()` (rollover-safe `millis()`, มี timeout)
+- `begin(address, TwoWire&)` รับบัสแบบ reference (ส่ง `Wire1` ได้) และ `getBus()` / `isSPI()` / `getCSPin()`
+- `MASSMORE_BME280_I2C_ADDR_DEFAULT` = **0x77** ตามฮาร์ดแวร์บอร์ด SKU-1023 (SDO ดึงขึ้น VDDIO)
+- ตัวอย่างชุดใหม่ 7 ชุด : `01_BasicRead`, `02_CustomPins_BusRemap`, `03_NonBlocking_Multitask`,
+  `07_Factory_Test`, `04_SPI_Advance`, `05_LowPower_ForcedMode`, `06_ChipID_Genuine`
+  ทุกชุดคอมไพล์ผ่านบน ESP32 / ESP32-S3 / RP2040 / AVR (Uno, Nano)
+- `07_Factory_Test` จบด้วย `[PASS] SENSOR QA PASSED - READY TO SHIP` หรือ
+  `[FAIL] QA CHECK FAILED: <REASON>` และรันบน AVR ได้ (สตริงอยู่ใน PROGMEM)
+- ชุดทดสอบบนเครื่อง PC เพิ่มกลุ่ม SPI และ FSM รวม 192 ข้อ
+
+### เปลี่ยน
+
+- **ไลบรารีไม่เรียก `Wire.begin()` อีกต่อไป** sketch ต้องเปิดบัสและเลือกขาเองก่อน `begin()`
+  (ตามหลัก Zero Pin Hardcoding ทำให้ใช้ได้ทุก MCU)
+- `beginAuto()` ลอง 0x77 ก่อนแล้วจึง 0x76
+- บน AVR `errorToString()` และตัวช่วยแปลงข้อความอื่นคืน ASCII สั้น ๆ เพื่อประหยัด SRAM
+- `read()` แบบบล็อกจะปฏิเสธ (`ERR_NOT_READY`) ขณะ FSM กำลังวัดค้างอยู่
+
+### ลบ
+
+- ตัวอย่างชุดเก่า 10 ชุด (เนื้อหาถูกรวมเข้าไปในชุดใหม่ 7 ชุด)
+
 ## [1.0.0] - 2026-09-04
 
 เวอร์ชันแรก

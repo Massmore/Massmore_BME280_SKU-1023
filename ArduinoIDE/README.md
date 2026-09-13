@@ -38,17 +38,20 @@
 ## สิ่งที่ต้องมีก่อน
 
 - Arduino IDE 2.x
-- ESP32 board package **core 3.x** (ติดตั้งผ่าน Boards Manager)
-  ใส่ URL นี้ใน Preferences → Additional Boards Manager URLs
-  ```
-  https://espressif.github.io/arduino-esp32/package_esp32_index.json
-  ```
-- เลือกบอร์ดให้ตรงกับที่ใช้ เช่น **ESP32 Dev Module**
+- board package ของบอร์ดที่ใช้ (ไลบรารีไม่มี dependency อื่น ใช้แค่ `Wire` / `SPI` ที่มากับ core)
+
+| บอร์ด | Board package | Boards Manager URL |
+|---|---|---|
+| ESP32 / ESP32-S3 | **esp32 by Espressif core 3.x** | `https://espressif.github.io/arduino-esp32/package_esp32_index.json` |
+| Raspberry Pi Pico (RP2040) | **Raspberry Pi Pico/RP2040 by Earle Philhower** | `https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json` |
+| Arduino Uno / Nano (AVR) | **Arduino AVR Boards** (มีมาแล้ว) | - |
+| STM32 | **STM32 MCU based boards (STM32duino)** | `https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json` |
+
 - ตั้ง Serial Monitor ที่ **115200 baud**
 
 ## ตัวอย่างทั้งหมด
 
-ดูรายละเอียดของทั้ง 10 ตัวอย่างได้ที่ [README หลักของรีโป](../README.md#ตัวอย่างทั้งหมด)
+ดูรายละเอียดของทั้ง 7 ตัวอย่างได้ที่ [README หลักของรีโป](../README.md#ตัวอย่างทั้งหมด)
 
 ## แก้โค้ดแล้วอยากอัปเดตไฟล์ ZIP
 

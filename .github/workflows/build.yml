@@ -1,0 +1,94 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host-test:
+    name: ชุดทดสอบบนเครื่อง PC
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: คอมไพล์และรันชุดทดสอบ
+        run: |
+          cd PlatformIO/test
+          make
+
+  platformio:
+    name: PlatformIO ทุก env x ทุกตัวอย่าง
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: ติดตั้ง PlatformIO
+        run: pip install platformio
+      - name: build matrix
+        run: |
+          cd PlatformIO
+          status=0
+          for ex in examples/*/; do
+            cp "$ex/main.cpp" src/main.cpp
+            for env in esp32-s3-devkitc-1 esp32dev pico uno; do
+              echo "::group::$(basename $ex) / $env"
+              pio run -e "$env" || status=1
+              echo "::endgroup::"
+            done
+          done
+          exit $status
+
+  arduino-cli:
+    name: คอมไพล์ตัวอย่างด้วย Arduino CLI
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fqbn: esp32:esp32:esp32s3
+            core: esp32:esp32
+            url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          - fqbn: esp32:esp32:esp32
+            core: esp32:esp32
+            url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          - fqbn: rp2040:rp2040:rpipico
+            core: rp2040:rp2040
+            url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+          - fqbn: arduino:avr:nano
+            core: arduino:avr
+            url: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ติดตั้ง Arduino CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: ติดตั้ง core
+        run: |
+          arduino-cli config init
+          if [ -n "${{ matrix.url }}" ]; then
+            arduino-cli config add board_manager.additional_urls "${{ matrix.url }}"
+          fi
+          arduino-cli core update-index
+          arduino-cli core install ${{ matrix.core }}
+
+      - name: ติดตั้งไลบรารี
+        run: |
+          mkdir -p "$HOME/Arduino/libraries"
+          cp -r ArduinoIDE/Massmore_BME280 "$HOME/Arduino/libraries/"
+
+      - name: คอมไพล์ทุกตัวอย่าง
+        run: |
+          status=0
+          for sketch in ArduinoIDE/Massmore_BME280/examples/*/; do
+            name=$(basename "$sketch")
+            echo "::group::$name"
+            arduino-cli compile --fqbn ${{ matrix.fqbn }} --warnings all "$sketch" || status=1
+            echo "::endgroup::"
+          done
+          exit $status

@@ -1,0 +1,8 @@
+โฟลเดอร์ include/ สำหรับ header ของโปรเจกต์ (ไม่ใช่ของไลบรารี)
+
+ไลบรารี Massmore_BME280 อยู่ที่ lib/Massmore_BME280/src/ และ PlatformIO
+จะเพิ่ม include path ให้เองอัตโนมัติ  ใน src/main.cpp เรียกใช้ได้ทันทีด้วย
+
+    #include <Massmore_BME280.h>
+
+ถ้าต้องการ header ของโปรเจกต์คุณเอง (เช่น config.h) ให้วางไว้ที่นี่

@@ -23,6 +23,19 @@ void delay(uint32_t ms) { g_millis += ms; }
 void hostAdvanceMillis(uint32_t ms) { g_millis += ms; }
 
 /* ------------------------------------------------------------------ */
+/* GPIO จำลอง                                                           */
+/* ------------------------------------------------------------------ */
+
+static uint8_t g_pinState[64];
+
+void pinMode(uint8_t pin, uint8_t mode) {
+  (void)pin;
+  (void)mode;
+}
+
+uint8_t hostGetPinState(uint8_t pin) { return (pin < 64) ? g_pinState[pin] : 0; }
+
+/* ------------------------------------------------------------------ */
 /* ชิปจำลอง                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -108,7 +121,9 @@ static void fakeProduceData(void) {
 void hostResetFakeBme280(void) {
   memset(&g_fakeBme, 0, sizeof(g_fakeBme));
   g_fakeBme.present = true;
-  g_fakeBme.address = 0x76;
+  g_fakeBme.address = 0x77; /* บอร์ด SKU-1023 ดึง SDO ขึ้น VDDIO */
+  g_fakeBme.spiCsPin = 10;
+  g_fakeBme.spiExpectControl = true;
   g_fakeBme.adcT = HOST_ADC_T_EXAMPLE;
   g_fakeBme.adcP = HOST_ADC_P_EXAMPLE;
   g_fakeBme.adcH = HOST_ADC_H_EXAMPLE;
@@ -305,4 +320,56 @@ int TwoWire::read(void) {
     return -1;
   }
   return (int)_rxBuffer[_rxIndex++];
+}
+
+/* ------------------------------------------------------------------ */
+/* ตัวแทน SPIClass + ขา CS                                              */
+/* ------------------------------------------------------------------ */
+
+SPIClass SPI;
+
+SPIClass::SPIClass()
+    : beginCount(0), transactionCount(0), lastClock(0), lastMode(0xFF), inTransaction(false) {}
+
+void SPIClass::begin() { beginCount++; }
+
+void SPIClass::beginTransaction(SPISettings settings) {
+  transactionCount++;
+  lastClock = settings.clock;
+  lastMode = settings.dataMode;
+  inTransaction = true;
+}
+
+void SPIClass::endTransaction() { inTransaction = false; }
+
+void digitalWrite(uint8_t pin, uint8_t value) {
+  if (pin < 64) {
+    g_pinState[pin] = value;
+  }
+  /* ทุกครั้งที่ CS เปลี่ยน ให้ชิปจำลองกลับไปรอ control byte ใหม่ (ดาต้าชีตหัวข้อ 6.3) */
+  if (pin == g_fakeBme.spiCsPin) {
+    g_fakeBme.spiExpectControl = true;
+  }
+}
+
+uint8_t SPIClass::transfer(uint8_t data) {
+  /* ชิปไม่ถูกเลือก หรือไม่มีชิป : MISO ลอย -> อ่านได้ 0xFF */
+  if (!g_fakeBme.present || hostGetPinState(g_fakeBme.spiCsPin) != LOW) {
+    return 0xFF;
+  }
+  if (g_fakeBme.spiExpectControl) {
+    g_fakeBme.spiIsRead = (data & 0x80) != 0;
+    /* รีจิสเตอร์ของ BME280 ทุกตัวอยู่ที่ 0x80 ขึ้นไป บิต 7 ของ control byte จึงเป็น
+       R/W ล้วน ๆ และชิปเติมบิต 7 ของ address กลับให้เอง (เขียน 0x72 -> 0xF2) */
+    g_fakeBme.spiAddress = (uint8_t)((data & 0x7F) | 0x80);
+    g_fakeBme.spiExpectControl = false;
+    return 0x00;
+  }
+  if (g_fakeBme.spiIsRead) {
+    return fakeRead(g_fakeBme.spiAddress++);
+  }
+  fakeWrite(g_fakeBme.spiAddress, data);
+  /* เขียนหลายคู่ในเฟรมเดียวได้ : คู่ถัดไปเริ่มด้วย control byte ใหม่ */
+  g_fakeBme.spiExpectControl = true;
+  return 0x00;
 }

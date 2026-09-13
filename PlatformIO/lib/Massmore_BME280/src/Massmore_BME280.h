@@ -9,29 +9,52 @@
  * จุดเด่นของไลบรารีตัวนี้
  *   - เขียนขึ้นจากดาต้าชีต Bosch BST-BME280-DS002 โดยตรง
  *     ใช้สูตรชดเชยแบบจำนวนเต็ม (int32 / int64) ตามภาคผนวก 4.2.3 ของดาต้าชีต
- *     ไม่พึ่งไลบรารีอื่นนอกจาก Wire
+ *     ไม่พึ่งไลบรารีอื่นนอกจาก Wire / SPI ที่มากับ Arduino core
+ *   - รองรับทั้ง I2C (0x77 ปริยาย / 0x76) และ SPI 4 สาย
+ *   - ไม่ init บัสเอง (ไม่เรียก Wire.begin() / SPI.begin()) sketch เป็นเจ้าของบัส
+ *     และเลือกขาได้อิสระ จึงใช้ได้กับ ESP32 / ESP32-S3 / RP2040 / STM32 / AVR
  *   - ไม่ใช้ heap เลย (ไม่มี new / malloc / String ในส่วนแกน)
  *   - ครอบคลุมทุกฟังก์ชันของชิป: oversampling x1..x16 แยกรายช่อง,
  *     โหมด sleep / forced / normal, IIR filter, standby time,
  *     อ่านค่าดิบ ADC และค่าชดเชยทั้ง 32 ตัว, soft reset
- *   - มีโหมด non-blocking สำหรับงานที่ห้ามค้าง
+ *   - มี API สองแบบ : แบบง่าย (บล็อก) และแบบ FSM ไม่บล็อก
+ *     requestConversion() / update() / isDataReady() / getReadings()
  *   - มี verifyChip() ตรวจ 10 ข้อว่าเป็นชิป Bosch BME280 ของแท้
  *     แยก BMP280 (chip id 0x58 - ไม่มีความชื้น) ออกจาก BME280 (0x60) ได้ชัดเจน
  *
- * ตัวอย่างสั้นที่สุด
+ * สรุปจากดาต้าชีต (Step 0 - Pre-flight Datasheet Verification)
+ *   - CHIP_ID   : รีจิสเตอร์ 0xD0 ต้องอ่านได้ 0x60 (BMP280 = 0x58 จะถูกปฏิเสธ)
+ *                 ชิปรุ่นนี้ไม่มีรีจิสเตอร์ silicon revision
+ *   - บัส       : I2C สูงสุด 3.4 MHz (แนะนำ 100k-400k) address 0x76 / 0x77
+ *                 SPI 4 สาย mode 0 หรือ 3 สูงสุด 10 MHz
+ *   - เวลา      : start-up 2 ms หลังจ่ายไฟ, soft reset เขียน 0xB6 ที่ 0xE0
+ *                 แล้วรอบิต im_update (status บิต 0) เป็น 0
+ *   - โปรโตคอล  : เข้าถึงรีจิสเตอร์ตรง ๆ ไม่มี CRC / packet
+ *                 ค่าชดเชย 0x88-0xA1 และ 0xE1-0xE7, ข้อมูล 0xF7-0xFE อ่านรวดเดียว
+ *   - ของแท้    : Bosch ไม่ได้เผยแพร่ signature register อย่างเป็นทางการ
+ *                 ไลบรารีจึงใช้ heuristic 10 ข้อใน verifyChip()
+ *                 // TODO: [MASSMORE_INPUT_REQUIRED: Factory trim signature register]
+ *
+ * ตัวอย่างสั้นที่สุด (I2C)
  * @code
  *   #include <Massmore_BME280.h>
  *   MassmoreBME280 bme;
  *
  *   void setup() {
  *     Serial.begin(115200);
- *     Wire.begin(21, 22);          // Qwiic ของบอร์ด Massmore ESP32
- *     bme.begin();                 // ปริยาย 0x76
+ *     Wire.begin();                // sketch เป็นคนเลือกขา เช่น Wire.begin(21, 22) บน ESP32
+ *     bme.begin();                 // ปริยาย 0x77 บนบัส Wire
  *   }
  *   void loop() {
  *     Serial.println(bme.readTemperature());
  *     delay(1000);
  *   }
+ * @endcode
+ *
+ * ตัวอย่างสั้นที่สุด (SPI)
+ * @code
+ *   SPI.begin();                   // หรือ SPI.begin(SCK, MISO, MOSI, CS) บน ESP32
+ *   bme.beginSPI(5, SPI);          // CS = GPIO5
  * @endcode
  *
  * @copyright Copyright (c) 2026 Massmore Biz Co., Ltd.
@@ -45,6 +68,7 @@
 
 #ifdef ARDUINO
 #include <Arduino.h>
+#include <SPI.h>
 #include <Wire.h>
 #else
 /* ใช้ตอนคอมไพล์ host test บนเครื่อง PC ไฟล์ mock อยู่ในโฟลเดอร์ test/ */
@@ -53,9 +77,9 @@
 
 /*! เวอร์ชันของไลบรารี */
 #define MASSMORE_BME280_VERSION_MAJOR 1
-#define MASSMORE_BME280_VERSION_MINOR 0
+#define MASSMORE_BME280_VERSION_MINOR 1
 #define MASSMORE_BME280_VERSION_PATCH 0
-#define MASSMORE_BME280_VERSION_STRING "1.0.0"
+#define MASSMORE_BME280_VERSION_STRING "1.1.0"
 
 /*! ความถี่ I2C ที่แนะนำสำหรับบอร์ด Massmore (สาย Qwiic ยาวไม่เกิน 30 ซม.) */
 #define MASSMORE_BME280_I2C_FREQ_DEFAULT 100000UL
@@ -132,8 +156,8 @@ typedef enum {
   MASSMORE_BME280_OK = 0,         /*!< สำเร็จ */
   MASSMORE_BME280_ERR_NOT_BEGUN,  /*!< ยังไม่ได้เรียก begin() */
   MASSMORE_BME280_ERR_NO_DEVICE,  /*!< ไม่มีอุปกรณ์ตอบที่ address นี้ */
-  MASSMORE_BME280_ERR_I2C_WRITE,  /*!< เขียนลงบัสไม่สำเร็จ */
-  MASSMORE_BME280_ERR_I2C_READ,   /*!< อ่านได้ไบต์ไม่ครบ */
+  MASSMORE_BME280_ERR_I2C_WRITE,  /*!< เขียนลงบัส (I2C/SPI) ไม่สำเร็จ */
+  MASSMORE_BME280_ERR_I2C_READ,   /*!< อ่านจากบัส (I2C/SPI) ได้ไบต์ไม่ครบ */
   MASSMORE_BME280_ERR_WRONG_CHIP, /*!< chip id ไม่ใช่ 0x60 (อาจเป็น BMP280) */
   MASSMORE_BME280_ERR_TIMEOUT,    /*!< รอผลวัดเกินเวลาที่ตั้งไว้ */
   MASSMORE_BME280_ERR_NOT_READY,  /*!< ยังวัดไม่เสร็จ (โหมดไม่บล็อก) */
@@ -163,6 +187,25 @@ typedef enum {
   MASSMORE_BME280_GENUINE_SUSPECT,     /*!< ผ่านเกือบหมด แต่มีบางข้อผิดปกติ */
   MASSMORE_BME280_GENUINE_NO           /*!< ไม่ผ่าน ไม่ใช่ BME280 หรือชิปเสีย */
 } massmore_bme280_genuine_t;
+
+/*!
+ * @brief บัสที่ใช้คุยกับชิป
+ */
+typedef enum {
+  MASSMORE_BME280_BUS_NONE = 0, /*!< ยังไม่ได้เรียก begin() */
+  MASSMORE_BME280_BUS_I2C,      /*!< ผ่าน TwoWire */
+  MASSMORE_BME280_BUS_SPI       /*!< ผ่าน SPIClass 4 สาย */
+} massmore_bme280_bus_t;
+
+/*!
+ * @brief สถานะของ FSM ไม่บล็อก (requestConversion / update / isDataReady / getReadings)
+ */
+typedef enum {
+  MASSMORE_BME280_STATE_IDLE = 0,  /*!< ว่าง พร้อมรับคำสั่ง requestConversion() */
+  MASSMORE_BME280_STATE_MEASURING, /*!< สั่งวัดไปแล้ว รอผล ให้เรียก update() เรื่อย ๆ */
+  MASSMORE_BME280_STATE_READY,     /*!< ผลพร้อม ให้เรียก getReadings() มารับ */
+  MASSMORE_BME280_STATE_ERROR      /*!< เกิดข้อผิดพลาด ดู lastError() แล้ว requestConversion() ใหม่ได้ */
+} massmore_bme280_state_t;
 
 /*!
  * @brief ค่าที่อ่านได้หนึ่งชุด จากการวัดรอบเดียวกัน
@@ -239,7 +282,10 @@ typedef struct {
 /* ========================================================================= */
 
 /*!
- * @brief ตัวขับเซ็นเซอร์ Bosch BME280 ผ่านบัส I2C
+ * @brief ตัวขับเซ็นเซอร์ Bosch BME280 ผ่านบัส I2C หรือ SPI
+ *
+ * ไลบรารีไม่เรียก Wire.begin() / SPI.begin() เอง และไม่รู้จักหมายเลขขาใด ๆ
+ * sketch ต้องเปิดบัสและเลือกขาก่อนเรียก begin() / beginSPI()
  */
 class MassmoreBME280 {
  public:
@@ -250,27 +296,52 @@ class MassmoreBME280 {
   /* ------------------------------------------------------------------ */
 
   /*!
-   * @brief เริ่มต้นใช้งานเซ็นเซอร์
+   * @brief เริ่มต้นใช้งานเซ็นเซอร์ผ่าน I2C
    *
    * ลำดับที่ทำให้: ตรวจว่ามีอุปกรณ์ตอบ -> อ่าน chip id -> soft reset ->
    * รอ NVM copy เสร็จ -> อ่านค่าชดเชยทั้ง 32 ตัว -> ตั้งค่าเริ่มต้นแบบ
    * "ใช้ทั่วไป" (oversampling x1 ทุกช่อง, normal mode, filter off, standby 125 ms)
    *
-   * ต้องเรียก Wire.begin(SDA, SCL) เองก่อน หรือปล่อยให้ฟังก์ชันนี้เรียกให้
-   * ด้วยค่าปริยายของบอร์ดก็ได้
+   * sketch ต้องเรียก Wire.begin() (หรือ Wire.begin(SDA, SCL) บน ESP32 / RP2040)
+   * เองก่อน ไลบรารีจะไม่แตะการตั้งค่าบัสเลย
    *
-   * @param address ที่อยู่บนบัส 0x76 (ปริยาย) หรือ 0x77
-   * @param wire    ตัวชี้ไปยังบัสที่ใช้ ปริยายคือ &Wire
+   * @param address  ที่อยู่บนบัส 0x77 (ปริยายของบอร์ด SKU-1023) หรือ 0x76
+   * @param wirePort บัสที่ใช้ ปริยายคือ Wire ส่ง Wire1 ได้บนบอร์ดที่มีหลายบัส
    * @return true เมื่อพบชิป BME280 ของแท้และอ่านค่าชดเชยได้ครบ
    */
-  bool begin(uint8_t address = MASSMORE_BME280_I2C_ADDR_A, TwoWire *wire = &Wire);
+  bool begin(uint8_t address = MASSMORE_BME280_I2C_ADDR_DEFAULT, TwoWire &wirePort = Wire);
 
   /*!
-   * @brief เริ่มต้นโดยไล่หาเซ็นเซอร์เองทั้ง 0x76 และ 0x77
+   * @brief แบบเดียวกับ begin(address, TwoWire&) แต่รับตัวชี้ (เข้ากันได้กับ v1.0)
+   */
+  bool begin(uint8_t address, TwoWire *wire);
+
+  /*!
+   * @brief เริ่มต้นใช้งานเซ็นเซอร์ผ่าน SPI 4 สาย
+   *
+   * sketch ต้องเรียก SPI.begin() (หรือ SPI.begin(SCK, MISO, MOSI, CS) บน ESP32)
+   * เองก่อน ไลบรารีจะตั้งขา CS เป็น OUTPUT / HIGH ให้ และใช้
+   * beginTransaction / endTransaction ครอบทุกครั้งที่คุยกับชิป
+   * จึงแชร์บัสกับอุปกรณ์อื่นได้
+   *
+   * @param csPin   ขา chip select (active low)
+   * @param spiPort บัสที่ใช้ ปริยายคือ SPI
+   * @param spiHz   ความถี่ SCK ปริยาย 1 MHz สูงสุด 10 MHz (เกินจะถูกลดให้)
+   * @return true เมื่อพบชิป BME280 ของแท้และอ่านค่าชดเชยได้ครบ
+   */
+  bool beginSPI(int8_t csPin, SPIClass &spiPort = SPI,
+                uint32_t spiHz = MASSMORE_BME280_SPI_DEFAULT_HZ);
+
+  /*!
+   * @brief เริ่มต้นโดยไล่หาเซ็นเซอร์เองทั้ง 0x77 และ 0x76 (I2C)
    * @param wire ตัวชี้ไปยังบัสที่ใช้
    * @return true เมื่อเจอที่ address ใด address หนึ่ง
    */
   bool beginAuto(TwoWire *wire = &Wire);
+
+  /*! บัสที่กำลังใช้อยู่ */
+  massmore_bme280_bus_t getBus() const { return _bus; }
+  bool isSPI() const { return _bus == MASSMORE_BME280_BUS_SPI; }
 
   /*!
    * @brief อ่านอุณหภูมิ หน่วยองศาเซลเซียส
@@ -320,6 +391,51 @@ class MassmoreBME280 {
    * @return true เมื่อสำเร็จ
    */
   bool read(massmore_bme280_reading_t &out);
+
+  /* ------------------------------------------------------------------ */
+  /* กลุ่ม FSM ไม่บล็อก (Advanced Non-blocking API)                        */
+  /*                                                                    */
+  /*   if (bme.isDataReady()) { bme.getReadings(r); ... }               */
+  /*   else if (bme.getState() == MASSMORE_BME280_STATE_IDLE) {          */
+  /*     bme.requestConversion();                                        */
+  /*   }                                                                 */
+  /*   bme.update();   // เรียกทุกรอบ loop() ไม่มีการ delay ข้างใน        */
+  /* ------------------------------------------------------------------ */
+
+  /*!
+   * @brief สั่งเริ่มวัดหนึ่งรอบโดยไม่รอ
+   *
+   * โหมด forced : สั่งชิปวัดแล้วเข้าสถานะ MEASURING
+   * โหมด normal : ชิปวัดอยู่แล้ว จึงเข้าสถานะ MEASURING แล้ว update() ครั้งถัดไป
+   *               จะหยิบค่าล่าสุดให้ทันที
+   * @return false ถ้ายังไม่ begin() หรือกำลังวัดค้างอยู่ (ERR_NOT_READY)
+   */
+  bool requestConversion();
+
+  /*!
+   * @brief เดินเครื่อง FSM หนึ่งก้าว เรียกทุกรอบ loop()
+   *
+   * ไม่มี delay() ข้างใน ใช้ millis() แบบ rollover-safe
+   * เมื่อครบเวลาตามดาต้าชีตและบิต measuring ลงแล้ว จะอ่านค่าและเข้าสถานะ READY
+   * ถ้ารอเกิน measurementTimeMaxMs() + MASSMORE_BME280_TIMEOUT_DEFAULT_MS
+   * จะเข้าสถานะ ERROR พร้อม lastError() = ERR_TIMEOUT
+   */
+  void update();
+
+  /*!
+   * @brief ผลวัดพร้อมให้ getReadings() หรือยัง
+   */
+  bool isDataReady() const { return _state == MASSMORE_BME280_STATE_READY; }
+
+  /*!
+   * @brief รับผลวัดชุดล่าสุดจาก FSM แล้วกลับสู่สถานะ IDLE
+   * @param out โครงสร้างรับผล
+   * @return true เมื่อมีผลที่ใช้ได้ (สถานะต้องเป็น READY)
+   */
+  bool getReadings(massmore_bme280_reading_t &out);
+
+  /*! สถานะปัจจุบันของ FSM */
+  massmore_bme280_state_t getState() const { return _state; }
 
   /* ------------------------------------------------------------------ */
   /* กลุ่มตั้งค่าขั้นสูง                                                   */
@@ -584,10 +700,11 @@ class MassmoreBME280 {
   /* ------------------------------------------------------------------ */
 
   massmore_bme280_error_t lastError() const { return _lastError; }
-  uint8_t getAddress() const { return _address; }
+  uint8_t getAddress() const { return _address; } /*!< I2C address (ไม่มีความหมายบน SPI) */
+  int8_t getCSPin() const { return _cs; }         /*!< ขา CS (−1 เมื่อใช้ I2C) */
   bool isConnected();
 
-  /*! แปลงรหัสข้อผิดพลาดเป็นข้อความภาษาไทย */
+  /*! แปลงรหัสข้อผิดพลาดเป็นข้อความ (ภาษาไทย / บน AVR เป็น ASCII สั้น ๆ เพื่อประหยัด SRAM) */
   static const char *errorToString(massmore_bme280_error_t error);
   /*! แปลงรุ่นชิปเป็นข้อความ */
   static const char *chipToString(massmore_bme280_chip_t chip);
@@ -634,22 +751,32 @@ class MassmoreBME280 {
   int32_t getTFine() const { return _tFine; }
 
  private:
-  /* --- การสื่อสารระดับล่าง --- */
+  /* --- การสื่อสารระดับล่าง (แยกตามบัส) --- */
   bool writeReg(uint8_t reg, uint8_t value);
   bool readRegs(uint8_t reg, uint8_t *buffer, uint8_t length);
+  bool writeRegI2C(uint8_t reg, uint8_t value);
+  bool readRegsI2C(uint8_t reg, uint8_t *buffer, uint8_t length);
+  bool writeRegSPI(uint8_t reg, uint8_t value);
+  bool readRegsSPI(uint8_t reg, uint8_t *buffer, uint8_t length);
   bool readReg8(uint8_t reg, uint8_t &value);
   uint16_t readU16LE(const uint8_t *buffer, uint8_t offset);
   int16_t readS16LE(const uint8_t *buffer, uint8_t offset);
 
   /* --- ตัวช่วยภายใน --- */
+  bool beginCommon();   /*!< ส่วนร่วมของ begin() / beginSPI() หลังผูกบัสแล้ว */
+  bool computeReading(massmore_bme280_reading_t &out); /*!< อ่านค่าดิบแล้วชดเชย (ไม่สั่งวัด) */
   bool applySettings(); /*!< เขียน config / ctrl_hum / ctrl_meas ตามลำดับที่ถูกต้อง */
   static uint8_t samplingToBits(massmore_bme280_sampling_t sampling);
   static uint8_t modeToBits(massmore_bme280_mode_t mode);
   static uint16_t samplingFactor(massmore_bme280_sampling_t sampling);
   bool waitForMeasurement(uint32_t timeoutMs);
 
+  massmore_bme280_bus_t _bus;
   TwoWire *_wire;
   uint8_t _address;
+  SPIClass *_spi;
+  int8_t _cs;
+  uint32_t _spiHz;
   bool _begun;
   bool _hasHumidity;
   uint8_t _chipId;
@@ -671,6 +798,9 @@ class MassmoreBME280 {
 
   uint32_t _forcedStartMs;
   bool _forcedPending;
+
+  massmore_bme280_state_t _state;
+  massmore_bme280_reading_t _lastReading;
 
   massmore_bme280_error_t _lastError;
 };

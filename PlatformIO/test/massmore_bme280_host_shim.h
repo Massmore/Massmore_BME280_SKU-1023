@@ -33,10 +33,55 @@ void delay(uint32_t ms);
 /*! เดินนาฬิกาจำลองไปข้างหน้าโดยไม่ต้องรอจริง ใช้ในชุดทดสอบ */
 void hostAdvanceMillis(uint32_t ms);
 
+/* GPIO จำลอง (ใช้กับขา CS ของ SPI) */
+#define INPUT 0
+#define OUTPUT 1
+#define LOW 0
+#define HIGH 1
+void pinMode(uint8_t pin, uint8_t mode);
+void digitalWrite(uint8_t pin, uint8_t value);
+uint8_t hostGetPinState(uint8_t pin);
+
 /* Arduino มีมาโครนี้ ไลบรารีบางส่วนใช้ */
 #ifndef F
 #define F(x) (x)
 #endif
+
+/* ------------------------------------------------------------------ */
+/* ตัวแทนคลาส SPIClass                                                  */
+/* ------------------------------------------------------------------ */
+
+#define MSBFIRST 1
+#define LSBFIRST 0
+#define SPI_MODE0 0x00
+#define SPI_MODE1 0x01
+#define SPI_MODE2 0x02
+#define SPI_MODE3 0x03
+
+struct SPISettings {
+  SPISettings() : clock(0), bitOrder(MSBFIRST), dataMode(SPI_MODE0) {}
+  SPISettings(uint32_t c, uint8_t o, uint8_t m) : clock(c), bitOrder(o), dataMode(m) {}
+  uint32_t clock;
+  uint8_t bitOrder;
+  uint8_t dataMode;
+};
+
+class SPIClass {
+ public:
+  SPIClass();
+  void begin();
+  void beginTransaction(SPISettings settings);
+  void endTransaction();
+  uint8_t transfer(uint8_t data);
+
+  uint32_t beginCount;
+  uint32_t transactionCount;
+  uint32_t lastClock;
+  uint8_t lastMode;
+  bool inTransaction;
+};
+
+extern SPIClass SPI;
 
 /* ------------------------------------------------------------------ */
 /* ตัวแทนคลาส TwoWire                                                  */
@@ -101,6 +146,12 @@ struct HostFakeBme280 {
   uint32_t writeCount;       /*!< จำนวนครั้งที่ถูกเขียนรีจิสเตอร์ */
   uint8_t writeLog[64];      /*!< ลำดับรีจิสเตอร์ที่ถูกเขียน ใช้ตรวจลำดับ */
   uint8_t writeLogLength;
+
+  /* สถานะฝั่ง SPI : ขา CS ที่ชิปจำลองต่ออยู่ และ state machine ของ control byte */
+  uint8_t spiCsPin;
+  bool spiExpectControl;
+  bool spiIsRead;
+  uint8_t spiAddress;
 };
 
 extern HostFakeBme280 g_fakeBme;
